@@ -11,11 +11,24 @@
   const app = document.getElementById("app");
 
   const PHOTO_TIMES = ["12:39 PM", "12:54 PM", "1:08 PM"];
+  const PHOTO_ASSETS = ["assets/lunch-recovered.svg", "assets/lunch-recovered.svg", "assets/lunch-recovered.svg"];
 
   const ACTION_ICONS = {
     english: "doc", maths: "cap", eat: "fork", friendFull: "chat", boundary: "shield",
     shower: "drop", scroll: "loop", perfectPrep: "sparkle", sleep: "moon"
   };
+
+  const ACTION_CATEGORY = {
+    maths: "purple", eat: "amber", shower: "cyan", boundary: "green", english: "blue",
+    scroll: "muted-red", sleep: "cyan", friendFull: "blue", perfectPrep: "amber"
+  };
+
+  // Local, per-tab animation ledgers — intentionally NOT part of `state`.
+  // They decide whether *this* tab still needs to play a one-shot glitch for
+  // an event it has already synced/rendered, so recovery/completion glitches
+  // never replay on an unrelated re-render, a facilitator RE-SYNC, or a reconnect.
+  const animatedPhotoSeq = {};
+  const animatedCompletion = {};
 
   const ICON_PATHS = {
     cap: '<path d="M12 4 3 9l9 5 9-5-9-5Z"/><path d="M7 11.2V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.8"/><path d="M21 9v5.2"/>',
@@ -1243,9 +1256,13 @@
   function viewPhoto(sceneId, index) {
     if (!Number.isInteger(index)) return;
     state.progress = state.progress || {};
-    const prev = state.progress[sceneId] || { active: 0, recovered: [0] };
-    const recovered = prev.recovered.indexOf(index) >= 0 ? prev.recovered.slice() : prev.recovered.concat([index]);
-    state.progress[sceneId] = { active: index, recovered: recovered };
+    const prev = state.progress[sceneId] || { active: -1, recovered: [], recoverySeq: 0 };
+    const isNew = prev.recovered.indexOf(index) < 0;
+    state.progress[sceneId] = {
+      active: index,
+      recovered: isNew ? prev.recovered.concat([index]) : prev.recovered.slice(),
+      recoverySeq: (prev.recoverySeq || 0) + (isNew ? 1 : 0)
+    };
   }
 
   function toggleEvidence(sceneId, key) {
@@ -1596,9 +1613,10 @@
         </main>`;
     }
     const boardOverlay = state.boardForced ? `<div class="board-overlay"><div class="board-overlay-card">${renderBoard()}</div></div>` : "";
+    const cinematic = scene.id === "photos" || scene.id === "finalNight" ? "cinematic-frame" : "";
     return `
       <main class="student-shell">
-        <section class="student-frame">
+        <section class="student-frame ${cinematic}">
           ${scan}
           <header class="student-hud">
             <div class="hud-brand"><span class="hud-signal"></span><strong>RESET.EXE</strong><small>RECOVERY SESSION</small></div>
@@ -1759,7 +1777,10 @@
     const source = sourceMeta(scene);
     const feedback = !completed && state.feedback[scene.id] ? renderFeedback(state.feedback[scene.id]) : "";
     const hints = !completed ? renderHints(scene) : "";
-    const body = completed && !scene.autoComplete ? renderCompletedScene(scene) : renderSceneBody(scene);
+    const body = !completed || scene.autoComplete ? renderSceneBody(scene)
+      : scene.id === "photos" && !state.skipped[scene.id] ? renderPhotoScene(scene, { completed: true })
+      : scene.id === "finalNight" && !state.skipped[scene.id] ? renderFinalActionsScene(scene, { completed: true })
+      : renderCompletedScene(scene);
     return `
       <section class="scene-panel scene-panel-${scene.id} type-${scene.type}">
         ${scene.id === "opening" ? "" : `<header class="scene-header"><div class="source-identity"><span class="source-mark">${escapeHtml(source.mark)}</span><div><small>${escapeHtml(meta.group)}${meta.part ? " · " + escapeHtml(meta.part) : ""}</small><strong>${escapeHtml(source.label)}</strong></div></div><div class="scene-heading"><h2>${escapeHtml(scene.title)}</h2><p>${escapeHtml(scene.objective)}</p></div><div class="scene-mode">${escapeHtml(meta.mode)}</div></header>`}
@@ -1775,7 +1796,6 @@
       <div class="clue-reveal">
         <div class="clue-stamp"><span>${skipped ? "RESTORED" : "CLUE LOCKED"}</span><strong>${String(state.sceneIndex + 1).padStart(2, "0")}</strong></div>
         <div class="clue-main">
-          ${scene.id === "photos" && !skipped ? `<div class="pattern-detected glitch-mount"><span>PATTERN DETECTED</span><strong>${escapeHtml((scene.board && scene.board.confirmed && scene.board.confirmed[0]) || "Jordan worked through most of lunch.")}</strong></div>` : ""}
           <small>YOUR CONCLUSION</small>
           ${renderSelectionSummary(scene)}
           ${scene.reveal ? `<div class="clue-proof"><span>WHY IT MATTERS</span><p>${escapeHtml(scene.reveal)}</p></div>` : ""}
@@ -1902,36 +1922,73 @@
 
   function photoProgress(sceneId) {
     const stored = state.progress && state.progress[sceneId];
-    if (stored && Array.isArray(stored.recovered) && stored.recovered.length) return stored;
-    return { active: 0, recovered: [0] };
+    if (stored && Array.isArray(stored.recovered)) return stored;
+    return { active: -1, recovered: [], recoverySeq: 0 };
   }
 
-  function renderPhotoScene(scene) {
+  function renderPhotoScene(scene, opts) {
+    const completed = Boolean(opts && opts.completed);
     const prog = photoProgress(scene.id);
-    const activeIndex = Math.max(0, Math.min(PHOTO_TIMES.length - 1, prog.active));
-    const activeTime = PHOTO_TIMES[activeIndex];
-    const slug = activeTime.replace(/[^0-9]/g, "");
+    const hasActive = prog.active >= 0 && prog.active < PHOTO_TIMES.length;
+    const activeIndex = hasActive ? prog.active : -1;
     const recoveredCount = prog.recovered.length;
     const allRecovered = recoveredCount >= PHOTO_TIMES.length;
+
+    const seq = prog.recoverySeq || 0;
+    const justRecovered = hasActive && seq > (animatedPhotoSeq[scene.id] || 0);
+    if (justRecovered) animatedPhotoSeq[scene.id] = seq;
 
     const rail = PHOTO_TIMES.map(function (time, index) {
       const isActive = index === activeIndex;
       const isRecovered = prog.recovered.indexOf(index) >= 0;
+      const attrs = completed
+        ? ""
+        : `data-action="viewPhoto" data-scene="${scene.id}" data-value="${index}"`;
+      const tag = completed ? "div" : "button";
       return `
-        <button class="gallery-thumb ${isActive ? "active" : ""} ${isRecovered ? "is-recovered" : "not-recovered"}" data-action="viewPhoto" data-scene="${scene.id}" data-value="${index}" aria-pressed="${isActive}">
-          <span class="thumb-frame"><img src="assets/lunch-recovered.svg" alt=""></span>
+        <${tag} class="gallery-thumb ${isActive ? "active" : ""} ${isRecovered ? "is-recovered" : "not-recovered"} ${completed ? "readonly" : ""}" ${attrs} aria-pressed="${isActive}">
+          <span class="thumb-frame"><img src="${escapeHtml(PHOTO_ASSETS[index] || "assets/lunch-recovered.svg")}" alt=""></span>
           <span class="thumb-info"><strong>${escapeHtml(time)}</strong><small>${isRecovered ? "RECOVERED" : "TAP TO RECOVER"}</small></span>
-        </button>`;
+        </${tag}>`;
     }).join("");
 
-    const questionBlock = allRecovered ? `
+    const viewerBody = hasActive ? `
+            <img src="${escapeHtml(PHOTO_ASSETS[activeIndex] || "assets/lunch-recovered.svg")}" alt="Recovered desk photo showing an open laptop, lunch and drink">
+            <span class="viewer-tag">RECOVERED EVIDENCE</span>
+            <span class="viewer-file">IMG_${escapeHtml(PHOTO_TIMES[activeIndex].replace(/[^0-9]/g, ""))}.JPG</span>
+            <span class="viewer-time">${escapeHtml(PHOTO_TIMES[activeIndex])}</span>
+            <i class="viewer-scan"></i>` : `
+            <div class="corrupt-noise"></div>
+            <span class="corrupt-caption">SELECT A STILL TO BEGIN RECOVERY</span>`;
+    const metaBar = hasActive
+      ? `<span>${escapeHtml(PHOTO_TIMES[activeIndex])}</span><span>RECOVERED STILL</span><span>4032 × 3024</span><span>SRC: CAMERA ROLL</span>`
+      : `<span>NO STILL SELECTED</span><span>0/${PHOTO_TIMES.length} RECOVERED</span><span>SRC: CAMERA ROLL</span>`;
+
+    let questionBlock;
+    if (completed) {
+      const justCompleted = !animatedCompletion[scene.id];
+      if (justCompleted) animatedCompletion[scene.id] = true;
+      const patternText = (scene.board && scene.board.confirmed && scene.board.confirmed[0]) || "Jordan worked through most of lunch.";
+      questionBlock = `
+      <div class="pr-question pr-locked">
+        <div class="pattern-detected ${justCompleted ? "glitch-mount" : ""}"><span>PATTERN DETECTED</span><strong>${escapeHtml(patternText)}</strong></div>
+        ${renderSelectionSummary(scene)}
+        <span class="clue-locked-tag">CLUE LOCKED ✓</span>
+        <div class="locked-footnote">${renderBoardUpdateSummary(scene)}${scene.reveal ? `<p>${escapeHtml(scene.reveal)}</p>` : ""}</div>
+        <div class="locked-next"><button class="primary-action" data-action="next">OPEN NEXT FILE →</button></div>
+      </div>`;
+    } else if (allRecovered) {
+      questionBlock = `
       <div class="pr-question">
         <div class="sequence-transition"><span>PATTERN CHECK</span><h3>WHAT DOES THE SEQUENCE SUPPORT?</h3></div>
         ${renderChoices(scene, "single")}
-      </div>` : `
+      </div>`;
+    } else {
+      questionBlock = `
       <div class="pr-question">
         <div class="recovery-gate"><span>RECOVER ALL THREE STILLS TO CONTINUE</span><strong>${recoveredCount}/${PHOTO_TIMES.length} RECOVERED</strong></div>
       </div>`;
+    }
 
     return `
       <div class="photo-recovery-layout">
@@ -1941,16 +1998,8 @@
           <div class="rail-counter"><strong>${recoveredCount}/${PHOTO_TIMES.length}</strong><span>RECOVERED</span></div>
         </aside>
         <div class="viewer-main">
-          <div class="viewer-frame glitch-mount" key="${activeIndex}">
-            <img src="assets/lunch-recovered.svg" alt="Recovered desk photo showing an open laptop, lunch and drink">
-            <span class="viewer-tag">RECOVERED EVIDENCE</span>
-            <span class="viewer-file">IMG_${escapeHtml(slug)}.JPG</span>
-            <span class="viewer-time">${escapeHtml(activeTime)}</span>
-            <i class="viewer-scan"></i>
-          </div>
-          <div class="viewer-meta-bar">
-            <span>${escapeHtml(activeTime)}</span><span>RECOVERED STILL</span><span>4032 × 3024</span><span>SRC: CAMERA ROLL</span>
-          </div>
+          <div class="viewer-frame ${hasActive ? "" : "corrupted"} ${justRecovered ? "glitch-mount glitch-sweep" : ""}">${viewerBody}</div>
+          <div class="viewer-meta-bar">${metaBar}</div>
         </div>
         <div class="activity-trace">
           <div class="trace-chip"><span>SCHOOL PORTAL</span><strong>Active 12:32 – 1:10 PM</strong></div>
@@ -2047,9 +2096,9 @@
     }).join("");
   }
 
-  function nightNotification(app, body, time, iconName) {
+  function nightNotification(app, body, time, iconName, tier) {
     return `
-      <div class="device-notif">
+      <div class="device-notif tier-${tier || "standard"}">
         <span class="notif-icon">${icon(iconName)}</span>
         <div class="notif-copy">
           <strong>${escapeHtml(app)}</strong>
@@ -2059,29 +2108,63 @@
       </div>`;
   }
 
-  function renderFinalActionsScene(scene) {
+  function renderFinalActionsScene(scene, opts) {
+    const completed = Boolean(opts && opts.completed);
     const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
     const labels = choiceLabels(scene);
+    const slotTag = completed ? "div" : "button";
     const slots = [0, 1, 2].map(function (i) {
       const id = selected[i];
       if (!id) return `<div class="fn-slot empty"><span class="slot-index">MOVE ${i + 1}</span><span class="slot-placeholder">Tap an action below to place it here</span></div>`;
-      return `<button class="fn-slot filled" data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="3" title="Tap to remove this move">
+      const attrs = completed ? "" : `data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="3" title="Tap to remove this move"`;
+      return `<${slotTag} class="fn-slot filled glitch-mount" data-category="${escapeHtml(ACTION_CATEGORY[id] || "cyan")}" ${attrs}>
         <span class="slot-index">MOVE ${i + 1}</span>
         <span class="slot-icon">${icon(ACTION_ICONS[id] || "sparkle")}</span>
         <strong>${escapeHtml(labels[id] || id)}</strong>
-        <span class="slot-remove">✕</span>
-      </button>`;
+        ${completed ? "" : `<span class="slot-remove">✕</span>`}
+      </${slotTag}>`;
     }).join("");
 
+    const tileTag = completed ? "div" : "button";
     const tiles = scene.choices.map(function (choice) {
       const id = choice[0];
       const isPlaced = selected.indexOf(id) >= 0;
-      return `<button class="action-tile ${isPlaced ? "placed" : ""}" data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="3" aria-pressed="${isPlaced}">
+      const attrs = completed ? "" : `data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="3" aria-pressed="${isPlaced}"`;
+      return `<${tileTag} class="action-tile ${isPlaced ? "placed" : ""} ${completed ? "readonly" : ""}" data-category="${escapeHtml(ACTION_CATEGORY[id] || "cyan")}" ${attrs}>
         <span class="tile-icon">${icon(ACTION_ICONS[id] || "sparkle")}</span>
         <span class="tile-label">${escapeHtml(choice[1])}</span>
         ${isPlaced ? `<span class="tile-badge">PLACED</span>` : ""}
-      </button>`;
+      </${tileTag}>`;
     }).join("");
+
+    let warningBanner;
+    if (completed) {
+      const justCompleted = !animatedCompletion[scene.id];
+      if (justCompleted) animatedCompletion[scene.id] = true;
+      warningBanner = `
+            <div class="device-warning locked ${justCompleted ? "glitch-mount" : ""}">
+              <span class="warn-icon locked">✓</span>
+              <div class="warn-copy"><strong>PROVISIONAL PLAN LOCKED</strong><p>Class decision recorded.</p></div>
+              <div class="warn-confidence"><span>CONFIDENCE</span><b>${state.confidence}%</b></div>
+            </div>`;
+    } else {
+      warningBanner = `
+            <div class="device-warning live glitch-mount">
+              <span class="warn-icon">${icon("warning")}</span>
+              <div class="warn-copy"><strong>INCOMPLETE TASKS DETECTED</strong><p>Complete all outstanding items before sleep.</p></div>
+              <div class="warn-confidence"><span>CONFIDENCE</span><b>${state.confidence}%</b></div>
+            </div>`;
+    }
+
+    const footer = completed ? `
+          <div class="plan-footer locked">
+            <div class="locked-footnote">${renderBoardUpdateSummary(scene)}${scene.reveal ? `<p>${escapeHtml(scene.reveal)}</p>` : ""}</div>
+            <button class="primary-action" data-action="next">OPEN NEXT FILE →</button>
+          </div>` : `
+          <div class="plan-footer">
+            <span class="capacity-flag">${icon("warning")}SYSTEM CAPACITY LIMIT · make 3 smart choices</span>
+            <button class="primary-action" data-action="submit">LOCK PROVISIONAL PLAN →</button>
+          </div>`;
 
     return `
       <div class="final-night-layout">
@@ -2090,33 +2173,26 @@
             <div class="device-notch"></div>
             <div class="device-status"><span class="device-clock">9:47</span><span class="device-battery low">${icon("battery")}11%</span></div>
             <div class="device-feed">
-              ${nightNotification("RESET.EXE", "INCOMPLETE TASKS DETECTED", "9:46 PM", "warning")}
-              ${nightNotification("Maths", "Upload due 11:59 PM", "9:44 PM", "upload")}
-              ${nightNotification("Messages", "11 unread", "9:42 PM", "chat")}
-              ${nightNotification("School Portal", "English draft check tomorrow", "9:37 PM", "cap")}
-              ${nightNotification("Reminder", "Shower & uniform", "8:50 PM", "drop")}
-              ${nightNotification("Home", "Food is in the fridge", "7:46 PM", "home")}
-              ${nightNotification("Friend", "you coming online tonight?", "9:31 PM", "person")}
+              ${warningBanner}
+              ${nightNotification("Maths", "Upload due 11:59 PM", "9:44 PM", "upload", "dominant")}
+              ${nightNotification("Messages", "11 unread", "9:42 PM", "chat", "standard")}
+              ${nightNotification("School Portal", "English draft check tomorrow", "9:37 PM", "cap", "standard")}
+              ${nightNotification("Reminder", "Shower & uniform", "8:50 PM", "drop", "standard")}
+              ${nightNotification("Home", "Food is in the fridge", "7:46 PM", "home", "standard")}
+              ${nightNotification("Friend", "you coming online tonight?", "9:31 PM", "person", "compressed")}
+              <div class="device-dock-remnant">${["chat", "cap", "home", "moon"].map(function (n) { return `<span class="dock-icon">${icon(n)}</span>`; }).join("")}</div>
             </div>
-            <span class="device-crack a"></span><span class="device-crack b"></span>
-          </div>
-          <div class="reset-warning-banner glitch-mount">
-            <span class="warn-icon">${icon("warning")}</span>
-            <div class="warn-copy"><strong>INCOMPLETE TASKS DETECTED</strong><p>Recommendation: Complete all outstanding items before sleep.</p></div>
-            <div class="warn-confidence"><span>CONFIDENCE</span><b>${state.confidence}%</b></div>
+            <span class="device-crack a"></span><span class="device-crack b"></span><span class="device-crack c"></span>
           </div>
         </section>
         <section class="plan-column">
-          <div class="plan-heading"><span>MAKE THE CALL</span><h2>YOU HAVE THREE MOVES.</h2></div>
+          <div class="plan-heading"><span>SYSTEM CAPACITY LIMITED</span><h2>YOU HAVE THREE MOVES.</h2></div>
           <div class="fn-slots">${slots}</div>
           <div class="action-bank">
-            <div class="action-bank-head"><span>AVAILABLE ACTIONS</span><small>${selected.length}/3 placed · tap to place, tap again to remove</small></div>
+            <div class="action-bank-head"><span>AVAILABLE ACTIONS</span><small>${selected.length}/3 placed${completed ? "" : " · tap to place, tap again to remove"}</small></div>
             <div class="action-grid">${tiles}</div>
           </div>
-          <div class="plan-footer">
-            <span class="capacity-flag">${icon("warning")}SYSTEM CAPACITY LIMIT · make 3 smart choices</span>
-            <button class="primary-action" data-action="submit">LOCK PROVISIONAL PLAN →</button>
-          </div>
+          ${footer}
         </section>
       </div>`;
   }
@@ -2243,16 +2319,17 @@
     const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
     const single = state.selections[scene.id] || "";
     const max = scene.max || 99;
+    const forensic = scene.id === "photos";
     const countNote = mode === "multi" && max < 99 ? `<span class="choice-count">${selected.length}/${max} selected</span>` : "";
     const choices = scene.choices.map(function (choice, index) {
       const id = choice[0];
       const label = choice[1];
       const isSelected = mode === "single" ? single === id : selected.includes(id);
       const prefix = mode === "single" && /^[a-d]$/.test(id) ? id.toUpperCase() : String(index + 1).padStart(2, "0");
-      return `<button class="choice-card ${isSelected ? "selected" : ""}" aria-pressed="${isSelected}" data-action="${mode === "single" ? "selectSingle" : "toggleMulti"}" data-scene="${scene.id}" data-value="${id}" data-max="${max}"><span class="choice-prefix">${escapeHtml(prefix)}</span><span class="choice-text">${escapeHtml(label)}</span><span class="choice-check">${isSelected ? "✓" : ""}</span></button>`;
+      return `<button class="choice-card ${forensic ? "forensic-card" : ""} ${isSelected ? "selected" : ""}" aria-pressed="${isSelected}" data-action="${mode === "single" ? "selectSingle" : "toggleMulti"}" data-scene="${scene.id}" data-value="${id}" data-max="${max}"><span class="choice-prefix">${escapeHtml(prefix)}</span><span class="choice-text">${escapeHtml(label)}</span><span class="choice-check">${isSelected ? "✓" : ""}</span></button>`;
     }).join("");
     const submitLabel = curveballChange ? "UPDATE PLAN" : scene.id === "finalNight" ? "LOCK PROVISIONAL PLAN" : "LOCK DECISION";
-    return `<div class="decision-dock"><div class="decision-title"><div><small>${escapeHtml(sceneQuestionLabel(scene))}</small><h3>${escapeHtml(scene.prompt || "Choose from the evidence")}</h3></div>${countNote}</div><div class="choice-list">${choices}</div><div class="decision-actions"><button class="primary-action" data-action="submit">${submitLabel} →</button></div></div>`;
+    return `<div class="decision-dock ${forensic ? "forensic-dock" : ""}"><div class="decision-title"><div><small>${escapeHtml(sceneQuestionLabel(scene))}</small><h3>${escapeHtml(scene.prompt || "Choose from the evidence")}</h3></div>${countNote}</div><div class="choice-list">${choices}</div><div class="decision-actions"><button class="primary-action" data-action="submit">${submitLabel} →</button></div></div>`;
   }
 
   function renderHints(scene) {

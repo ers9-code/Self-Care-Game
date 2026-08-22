@@ -1074,15 +1074,22 @@
     }
   }
 
+  // BroadcastChannel is the primary transport (per the facilitator's own "will try direct
+  // window messaging" fallback warning below) and window messaging is a fallback for
+  // browsers without it -- not a second simultaneous copy. Sending both at once double-
+  // delivers every message to the same recipient: harmless for an idempotent state-snapshot,
+  // but it silently cancels out non-idempotent actions (toggleMulti/toggleEvidence/
+  // selectSortCard) applied twice in a row, e.g. a student's tap on a Morning Trace tag
+  // registering and then immediately un-registering in a real two-window session.
   function sendMessage(message, targetWindow) {
     const payload = Object.assign({ app: "RESET.EXE", sentAt: Date.now() }, message);
     if (channel) {
       try { channel.postMessage(payload); } catch (error) { }
+      return;
     }
     if (targetWindow && typeof targetWindow.postMessage === "function") {
       try { targetWindow.postMessage(payload, "*"); } catch (error) { }
-    }
-    if (studentWindow && typeof studentWindow.postMessage === "function") {
+    } else if (studentWindow && typeof studentWindow.postMessage === "function") {
       try { studentWindow.postMessage(payload, "*"); } catch (error) { }
     }
   }
@@ -1192,8 +1199,11 @@
         delete state.feedback[action.sceneId];
         break;
       case "toggleMulti":
-        toggleMulti(action.sceneId, action.value, action.max);
-        delete state.feedback[action.sceneId];
+        if (toggleMulti(action.sceneId, action.value, action.max)) {
+          delete state.feedback[action.sceneId];
+        } else {
+          state.feedback[action.sceneId] = { type: "warn", title: "Limit Reached", text: "Remove a selection before adding another." };
+        }
         break;
       case "replaceEnglishMove":
         replaceEnglishMove(action.value);
@@ -1248,8 +1258,11 @@
         if (action.confirmed) {
           state = defaultState();
           saveState();
-          Object.keys(animatedPhotoSeq).forEach(function (k) { delete animatedPhotoSeq[k]; });
-          Object.keys(animatedCompletion).forEach(function (k) { delete animatedCompletion[k]; });
+          [animatedPhotoSeq, animatedCompletion, animatedAnchorSeq, animatedConflict,
+            animatedHistoryReveal, animatedPriorityWall, animatedOpeningMount, animatedCurveballLog
+          ].forEach(function (ledger) {
+            Object.keys(ledger).forEach(function (k) { delete ledger[k]; });
+          });
         }
         break;
       case "toggleScan":
@@ -1302,16 +1315,25 @@
     }
   }
 
+  // Returns true when the selection actually changed, false when a tap at max was rejected
+  // (an already-full multi-select used to silently evict the oldest pick instead -- across
+  // every consumer here, from a 2-of-5 quiz tag to Root Cause's 6-of-10 evidence board, that
+  // meant a tap past the limit could quietly discard a correct earlier choice with no visual
+  // cue why the count didn't move; rejecting it and surfacing the existing feedback box is a
+  // strict UX improvement everywhere it's used, and never removes the "tap again to deselect"
+  // behavior any of them relies on).
   function toggleMulti(sceneId, value, max) {
     const current = Array.isArray(state.selections[sceneId]) ? state.selections[sceneId].slice() : [];
     const index = current.indexOf(value);
     if (index >= 0) {
       current.splice(index, 1);
-    } else {
-      if (max && current.length >= max) current.shift();
-      current.push(value);
+      setSelection(sceneId, current);
+      return true;
     }
+    if (max && current.length >= max) return false;
+    current.push(value);
     setSelection(sceneId, current);
+    return true;
   }
 
   function viewPhoto(sceneId, index) {
@@ -2742,15 +2764,6 @@
       const done = state.completed[scene.id] ? " ✓" : state.skipped[scene.id] ? " skipped" : "";
       return `<li class="${classes}">${index + 1}. ${escapeHtml(scene.file)} - ${escapeHtml(scene.title)}${done}</li>`;
     }).join("")}</ol>`;
-  }
-
-  function submitOverride(scene) {
-    const current = state.selections[scene.id] || {};
-    if (current.confirm) {
-      completeScene(scene);
-      state.feedback[scene.id] = { type: "good", text: scene.reveal };
-      return;
-    }
   }
 
   const originalSubmitScene = submitScene;

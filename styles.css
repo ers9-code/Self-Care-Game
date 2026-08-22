@@ -975,6 +975,16 @@ body.view-facilitator { background:#edf1f2;color:#172328;font-family:Inter,Arial
 .locked-next { display:flex; justify-content:flex-end; margin-top:2px; }
 .gallery-thumb.readonly, .action-tile.readonly { cursor:default; }
 
+/* Passive recovery-system status — facilitator remains authoritative for advancing scenes,
+   so this is a readout (no data-action, no click handler), never a control. */
+.file-status-locked {
+  display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px;
+  border:1px solid rgba(231,184,95,.28); background:rgba(231,184,95,.06); cursor:default;
+  color:var(--amber); font:800 clamp(10px,.9vmin,13px)/1 var(--mono); letter-spacing:.06em; white-space:nowrap;
+}
+.file-status-locked::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--amber); flex-shrink:0; }
+.file-status-locked small { color:var(--dim); font:700 clamp(8px,.7vmin,10px)/1 var(--mono); letter-spacing:.05em; }
+
 /* ===================== FINAL NIGHT (FILE 08) ===================== */
 .scene-finalNight .final-night-layout {
   height:100%; min-height:0; display:grid;

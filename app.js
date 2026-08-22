@@ -1189,6 +1189,8 @@
         if (action.confirmed) {
           state = defaultState();
           saveState();
+          Object.keys(animatedPhotoSeq).forEach(function (k) { delete animatedPhotoSeq[k]; });
+          Object.keys(animatedCompletion).forEach(function (k) { delete animatedCompletion[k]; });
         }
         break;
       case "toggleScan":
@@ -1975,7 +1977,7 @@
         ${renderSelectionSummary(scene)}
         <span class="clue-locked-tag">CLUE LOCKED ✓</span>
         <div class="locked-footnote">${renderBoardUpdateSummary(scene)}${scene.reveal ? `<p>${escapeHtml(scene.reveal)}</p>` : ""}</div>
-        <div class="locked-next"><button class="primary-action" data-action="next">OPEN NEXT FILE →</button></div>
+        <div class="locked-next"><span class="file-status-locked">FILE COMPLETE <small>AWAITING NEXT FILE…</small></span></div>
       </div>`;
     } else if (allRecovered) {
       questionBlock = `
@@ -2159,7 +2161,7 @@
     const footer = completed ? `
           <div class="plan-footer locked">
             <div class="locked-footnote">${renderBoardUpdateSummary(scene)}${scene.reveal ? `<p>${escapeHtml(scene.reveal)}</p>` : ""}</div>
-            <button class="primary-action" data-action="next">OPEN NEXT FILE →</button>
+            <span class="file-status-locked">FILE COMPLETE <small>AWAITING NEXT FILE…</small></span>
           </div>` : `
           <div class="plan-footer">
             <span class="capacity-flag">${icon("warning")}SYSTEM CAPACITY LIMIT · make 3 smart choices</span>

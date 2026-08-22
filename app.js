@@ -23,6 +23,24 @@
     laterArrival: [6]
   };
 
+  // Deadline Mismatch: explicit choice-id -> {app,row-index} lookup, not text matching.
+  // calendar rows: 0 "ENGLISH DUE TOMORROW", 1 "Work", 2 "Maths upload".
+  // portal rows: 0 "English" (subject header, not tappable), 1 "Draft check: tomorrow",
+  // 2 "Final submission: Monday", 3 "Bring current progress to class." (not tappable).
+  const CALENDAR_TAG_MAP = {
+    calendarEnglish: { app: "calendar", index: 0 },
+    work: { app: "calendar", index: 1 },
+    maths: { app: "calendar", index: 2 },
+    portalDraft: { app: "portal", index: 1 },
+    portalFinal: { app: "portal", index: 2 }
+  };
+
+  // Priority Failure: the "wall of undifferentiated HIGH PRIORITY tags" is RESET.EXE's own
+  // (already-shipped) flavor-text list, not the sortable cards -- a deliberately broader,
+  // messier universe than the 6 items students actually sort, to sell "everything flagged
+  // urgent means nothing is prioritised" before the clean 3-bucket sort contrasts it.
+  const PRIORITY_NOISE_ITEMS = ["English", "Friend messages", "Maths", "Uniform", "Shower", "Phone charging"];
+
   const ACTION_ICONS = {
     english: "doc", maths: "cap", eat: "fork", friendFull: "chat", boundary: "shield",
     shower: "drop", scroll: "loop", perfectPrep: "sparkle", sleep: "moon"
@@ -40,6 +58,9 @@
   const animatedPhotoSeq = {};
   const animatedCompletion = {};
   const animatedAnchorSeq = {};
+  const animatedConflict = {};
+  const animatedHistoryReveal = {};
+  const animatedPriorityWall = {};
 
   const ICON_PATHS = {
     cap: '<path d="M12 4 3 9l9 5 9-5-9-5Z"/><path d="M7 11.2V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.8"/><path d="M21 9v5.2"/>',
@@ -451,7 +472,7 @@
       ],
       prompt: "What went wrong?",
       choices: [
-        ["a", "TikTok is not self-care."],
+        ["a", "Breaks should never involve entertainment."],
         ["b", "Jordan should have started homework immediately."],
         ["c", "The break continued long after it was meant to help."],
         ["d", "RESET.EXE should never recommend entertainment."]
@@ -527,7 +548,7 @@
       ],
       prompt: "If everything is high priority, is anything actually prioritised?",
       buckets: [
-        ["urgent", "URGENT TONIGHT"],
+        ["urgent", "DO TONIGHT"],
         ["wait", "IMPORTANT BUT CAN WAIT"],
         ["low", "LOW PRIORITY"]
       ],
@@ -2053,20 +2074,60 @@
     return route + dock;
   }
 
+  // Deadline Mismatch: evidence rows tap directly (via CALENDAR_TAG_MAP, an explicit
+  // id->{app,index} lookup -- not string/label matching) instead of a detached choice list.
+  // toggleMulti/max:2/answer.correct/reveal/afterComplete/board are all reused unmodified;
+  // only where the same buttons render (inside the app windows) and the live CONFLICT
+  // DETECTED beat are new. No pre-highlighting of the correct rows before selection.
   function renderConnectScene(scene) {
+    const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
+    const max = scene.max || 2;
+    const idByAppIndex = {};
+    Object.keys(CALENDAR_TAG_MAP).forEach(function (id) {
+      const m = CALENDAR_TAG_MAP[id];
+      idByAppIndex[m.app + "-" + m.index] = id;
+    });
+
+    function tapRow(tag, className, index, innerHtml) {
+      const id = idByAppIndex[tag + "-" + index];
+      if (!id) return `<div class="${className}">${innerHtml}</div>`;
+      const isSelected = selected.includes(id);
+      return `<button class="${className} ${isSelected ? "selected" : ""}" aria-pressed="${isSelected}" data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="${max}">${innerHtml}${isSelected ? '<i class="row-check">✓</i>' : ""}</button>`;
+    }
+
     const calendarRows = scene.evidence.calendar.map(function (row, index) {
-      return `<div class="calendar-event ${index === 0 ? "hot" : ""}"><span class="cal-time">${escapeHtml(row[1])}</span><strong>${escapeHtml(row[0])}</strong></div>`;
+      return tapRow("calendar", "calendar-event", index, `<span class="cal-time">${escapeHtml(row[1])}</span><strong>${escapeHtml(row[0])}</strong>`);
     }).join("");
     const portal = scene.evidence.portal.map(function (line, index) {
-      return `<div class="portal-line ${index === 2 ? "hot" : ""}">${index === 0 ? `<span class="portal-subject">${escapeHtml(line)}</span>` : escapeHtml(line)}</div>`;
+      const inner = index === 0 ? `<span class="portal-subject">${escapeHtml(line)}</span>` : escapeHtml(line);
+      return tapRow("portal", "portal-line", index, inner);
     }).join("");
+
+    const correctSet = (scene.answer && scene.answer.kind === "set") ? scene.answer.correct.slice().sort() : [];
+    const gotSet = selected.slice().sort();
+    const foundConflict = Boolean(correctSet.length) && gotSet.length === correctSet.length && gotSet.every(function (v, i) { return v === correctSet[i]; });
+    const conflictKey = foundConflict ? gotSet.join("+") : null;
+    const justFound = foundConflict && animatedConflict[scene.id] !== conflictKey;
+    if (foundConflict) animatedConflict[scene.id] = conflictKey;
+
+    const compareCenter = foundConflict
+      ? `<div class="compare-arrow conflict"><span>MISMATCH</span><b>✕</b></div>`
+      : `<div class="compare-arrow"><span>COMPARE</span><b>↔</b></div>`;
+    const conflictBanner = foundConflict
+      ? `<div class="conflict-detected ${justFound ? "glitch-mount" : ""}"><span>CONFLICT DETECTED</span><strong>Calendar wording doesn't match the portal's final submission date.</strong></div>`
+      : "";
+
+    const countNote = `<span class="choice-count">${selected.length}/${max} selected</span>`;
+    const dock = `<div class="decision-dock"><div class="decision-title"><div><small>${escapeHtml(sceneQuestionLabel(scene))}</small><h3>${escapeHtml(scene.prompt || "Choose from the evidence")}</h3></div>${countNote}</div><div class="decision-actions"><button class="primary-action" data-action="submit">LOCK DECISION →</button></div></div>`;
+
     return `
       <div class="split-apps">
         <section class="app-window calendar-app"><header><span class="app-icon">31</span><div><small>JORDAN'S PHONE</small><strong>Calendar</strong></div></header><div class="app-content">${calendarRows}</div></section>
-        <div class="compare-arrow"><span>COMPARE</span><b>↔</b></div>
+        ${compareCenter}
         <section class="app-window portal-app"><header><span class="app-icon portal">S</span><div><small>SCHOOL</small><strong>Portal</strong></div></header><div class="app-content">${portal}</div></section>
       </div>
-      ${renderChoices(scene, "multi")}`;
+      ${conflictBanner}
+      ${dock}`;
   }
 
   function photoProgress(sceneId) {
@@ -2169,9 +2230,18 @@
       </div>`;
   }
 
+  // Afternoon Gap: the recovered TikTok rows stagger in one at a time instead of dumping as
+  // a static table, so the duration reads as physically accumulating. Reuses the exact same
+  // toggleEvidence/current.history boolean gate already shipped -- only what renders when
+  // history is true changes. NOTE: selecting an interpretation choice overwrites
+  // state.selections.afternoon (via setSelection) with the plain answer id, which is the
+  // same slot toggleEvidence uses for {history:true} -- a pre-existing quirk (confirmed
+  // on the previous build too) where `current.history` reads back falsy the moment a choice
+  // is picked. Choices are therefore de-emphasised (not hard-gated/hidden) before recovery,
+  // so this quirk can never hide the submit control.
   function renderAfternoonScene(scene) {
     const current = state.selections[scene.id] || {};
-    const open = current.history;
+    const open = Boolean(current && typeof current === "object" && current.history);
     const rows = [
       ["3:48", "TikTok opened"],
       ["4:06", "TikTok active"],
@@ -2179,7 +2249,13 @@
       ["4:52", "TikTok active"],
       ["5:03", "TikTok active"],
       ["5:14", "TikTok closed"]
-    ].map(function (row) { return `<tr><td>${row[0]}</td><td>${row[1]}</td></tr>`; }).join("");
+    ];
+    const justOpened = open && !animatedHistoryReveal[scene.id];
+    if (open) animatedHistoryReveal[scene.id] = true;
+    const strip = open ? `<div class="recovered-strip">${rows.map(function (row, index) {
+      const delayStyle = justOpened ? ` style="animation-delay:${index * 140}ms"` : "";
+      return `<div class="recovered-row ${justOpened ? "glitch-mount" : ""}"${delayStyle}><span class="rr-time">${escapeHtml(row[0])}</span><strong>${escapeHtml(row[1])}</strong></div>`;
+    }).join("")}</div>` : "";
     return `
       <ul class="timeline-list">
         <li class="timeline-item"><span class="timestamp">3:41 PM</span><span>School Wi-Fi disconnected</span></li>
@@ -2189,9 +2265,9 @@
       <div class="action-row">
         <button class="subtle-action" data-action="toggleEvidence" data-scene="${scene.id}" data-value="history">${open ? "HIDE APP HISTORY" : "RECOVER APP HISTORY"}</button>
       </div>
-      ${open ? `<table class="data-table"><thead><tr><th>Time</th><th>Activity</th></tr></thead><tbody>${rows}</tbody></table>` : ""}
+      ${strip}
       <div class="log-card system"><h3>3:44 PM - OVERLOAD DETECTED</h3><p>Recommendation: Take a break and do something enjoyable.</p></div>
-      ${renderChoices(scene, "single")}`;
+      <div class="afternoon-focus ${open ? "" : "dimmed"}">${renderChoices(scene, "single")}</div>`;
   }
 
   function renderMessagesScene(scene) {
@@ -2220,9 +2296,14 @@
   function renderSortScene(scene) {
     const placements = state.selections[scene.id] && state.selections[scene.id].placements ? state.selections[scene.id].placements : {};
     const unplaced = scene.cards.filter(function (card) { return !placements[card[0]]; });
+    const justMounted = !animatedPriorityWall[scene.id];
+    animatedPriorityWall[scene.id] = true;
+    const noiseWall = `<div class="priority-noise-wall ${justMounted ? "glitch-mount" : ""}">${PRIORITY_NOISE_ITEMS.map(function (label) {
+      return `<span class="priority-chip">${escapeHtml(label)} <b>HIGH PRIORITY</b></span>`;
+    }).join("")}</div>`;
     return `
       <div class="log-card warning"><h3>Maths Upload - due 11:59 PM</h3><p>Short response task. Estimated completion time: 8 minutes. Submission closes at midnight.</p></div>
-      <div class="priority-summary"><strong>RESET.EXE priorities:</strong> English, Friend messages, Maths, Uniform, Shower, and Phone charging are all marked <strong>HIGH PRIORITY</strong>.</div>
+      ${noiseWall}
       <div class="question-box">
         <h3>${escapeHtml(scene.prompt)}</h3>
         <div class="sort-layout">

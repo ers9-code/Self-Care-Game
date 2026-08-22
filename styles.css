@@ -1254,6 +1254,37 @@ button.trace-event.anchor:hover::before, button.trace-event.anchor:focus-visible
 @media (prefers-reduced-motion: reduce) {
   .glitch-mount { animation:none; }
   .glitch-sweep .viewer-scan { animation:none; opacity:0; }
+  .confidence-collapse .cc-step { animation:none !important; opacity:1; transform:none; filter:none; }
+}
+
+/* Override climax: the confidence collapse staged 61% -> 18% -> 4%, entirely local to this
+   scene's own completed view (does not touch the persistent HUD badge elsewhere). */
+.confidence-collapse {
+  display:flex; align-items:center; gap:10px; margin-bottom:8px; padding:11px 15px;
+  border-radius:10px; border:1px solid rgba(255,104,115,.3);
+  background:linear-gradient(90deg, rgba(255,104,115,.1), rgba(255,255,255,.02));
+}
+.confidence-collapse .cc-arrow { color:var(--dim); font-size:14px; opacity:.5; }
+.confidence-collapse .cc-step {
+  display:inline-block; font:800 clamp(16px,1.6vmin,22px)/1 var(--mono); color:var(--dim);
+  animation: ccPulseDim .5s ease-out both;
+}
+.confidence-collapse .cc-step.cc-final {
+  color:var(--red); font-size:clamp(22px,2.2vmin,30px);
+  animation: ccPulseFinal .5s ease-out both;
+}
+.confidence-collapse span.cc-step:nth-of-type(1) { animation-delay:0ms; }
+.confidence-collapse span.cc-step:nth-of-type(2) { animation-delay:320ms; }
+.confidence-collapse span.cc-step:nth-of-type(3) { animation-delay:640ms; }
+@keyframes ccPulseDim {
+  0% { opacity:0; transform:scale(1.4); }
+  60% { opacity:1; transform:scale(1); }
+  100% { opacity:.45; transform:scale(1); }
+}
+@keyframes ccPulseFinal {
+  0% { opacity:0; transform:scale(1.5); filter:blur(2px); }
+  60% { opacity:1; transform:scale(1.08); filter:none; }
+  100% { opacity:1; transform:scale(1); filter:none; }
 }
 
 /* Cinematic chrome compression — Photo Recovery / Final Night only.

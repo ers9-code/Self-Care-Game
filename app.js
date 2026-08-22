@@ -1890,12 +1890,25 @@
     const accessGranted = scene.id === "deletedData" && !skipped
       ? `<div class="data-recovered ${!animatedCompletion[scene.id] ? "glitch-mount" : ""}"><span>ACCESS GRANTED</span><strong>Deleted data folder restored.</strong></div>`
       : "";
-    if (scene.id === "deletedData" && !skipped) animatedCompletion[scene.id] = true;
+    // Override: the confidence collapse (61% -> 18% -> 4%) was previously a silent state
+    // flip -- completeScene's override special-case (unchanged, still sets state.confidence
+    // = 4 synchronously) now gets a staged visual collapse to match, entirely local to this
+    // scene's own completed view (the persistent HUD badge elsewhere just shows the final
+    // 4%, as it always did -- untouched, zero risk to facilitator chrome). Pure CSS stagger,
+    // same one-shot animatedCompletion ledger keyed by scene.id as deletedData/photos/etc.
+    const confidenceCollapse = scene.id === "override" && !skipped
+      ? `<div class="confidence-collapse ${!animatedCompletion[scene.id] ? "glitch-mount" : ""}">
+          <span class="cc-step">61%</span><b class="cc-arrow">→</b>
+          <span class="cc-step">18%</span><b class="cc-arrow">→</b>
+          <span class="cc-step cc-final">4%</span>
+        </div>`
+      : "";
+    if ((scene.id === "deletedData" || scene.id === "override") && !skipped) animatedCompletion[scene.id] = true;
     return `
       <div class="clue-reveal">
         <div class="clue-stamp"><span>${skipped ? "RESTORED" : "CLUE LOCKED"}</span><strong>${String(state.sceneIndex + 1).padStart(2, "0")}</strong></div>
         <div class="clue-main">
-          ${accessGranted}
+          ${accessGranted}${confidenceCollapse}
           <small>YOUR CONCLUSION</small>
           ${renderSelectionSummary(scene)}
           ${scene.reveal ? `<div class="clue-proof"><span>WHY IT MATTERS</span><p>${escapeHtml(scene.reveal)}</p></div>` : ""}

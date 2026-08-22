@@ -295,6 +295,12 @@ button:disabled { cursor: not-allowed; opacity: .42; transform: none; }
 .reconstruction-flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
 .reconstruction-node { position:relative; min-height:90px; padding:9px 10px 9px 38px; border:1px solid var(--line); border-radius:9px; background:rgba(255,255,255,.03); }
 .node-index { position:absolute; left:9px; top:9px; color:var(--dim); font:700 var(--student-small) var(--mono); }
+.node-icon,.node-echo { position:absolute; left:9px; top:31px; width:20px; height:20px; display:grid; place-items:center; font-size:14px; color:var(--dim); opacity:.9; }
+.node-echo { color:var(--cyan); }
+.node-echo-photo { width:26px; height:19px; border-radius:5px; overflow:hidden; background:#141c22; }
+.node-echo-photo img { width:100%; height:100%; object-fit:cover; filter:saturate(.7) brightness(.75) contrast(1.02); }
+.node-echo-priority { display:flex; flex-direction:column; gap:2px; width:15px; }
+.node-echo-priority i { display:block; width:100%; height:3px; border-radius:2px; background:rgba(231,184,95,.6); }
 .reconstruction-node .timestamp { display:block; }
 .reconstruction-node strong { display:block; margin:3px 0; }
 .reconstruction-node p { margin:0; color:var(--muted); font-size:var(--student-small); line-height:1.25; }
@@ -435,6 +441,9 @@ body.view-facilitator { overflow:auto; }
   .completion-screen { gap:7px 10px; }
   .completion-conclusion,.evidence-connection,.recovered-system-log,.case-update { padding:8px 10px; }
   .reconstruction-node { min-height:74px; padding:7px 8px 7px 34px; }
+  .node-icon,.node-echo { top:26px; width:16px; height:16px; font-size:11px; }
+  .node-echo-photo { width:21px; height:15px; }
+  .node-echo-priority { width:12px; gap:1px; }
   .reboot-screen { gap:9px; }
 }
 
@@ -500,6 +509,9 @@ body.view-facilitator { overflow:auto; }
   .reconstruction-flow { grid-template-columns:repeat(3,1fr); gap:4px; }
   .reconstruction-node { min-height:58px; padding:4px 5px 4px 27px; }
   .node-index { left:5px; top:5px; }
+  .node-icon,.node-echo { left:5px; top:20px; width:14px; height:14px; font-size:10px; }
+  .node-echo-photo { width:18px; height:13px; }
+  .node-echo-priority { width:10px; }
   .root-cause-card { margin-top:5px; padding:6px 8px; }
   .reboot-checks { gap:4px; }
   .reboot-check { padding:5px; }
@@ -610,6 +622,10 @@ html.view-student, body.view-student { background:#020407; }
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom,rgba(0,0,0,.6),transparent 78%);
 }
+/* Reboot: the one deliberately "undamaged" scene. Suppress the ambient corruption
+   scanline texture only while it is active -- scoped to this one scene class, every
+   other scene keeps the texture untouched. */
+.student-frame.scene-reboot::after { opacity:0; }
 .student-hud {
   position: relative; z-index: 3;
   min-height: clamp(52px,6.2vmin,76px);

@@ -96,7 +96,8 @@
     home: '<path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>',
     person: '<circle cx="12" cy="8.3" r="3.3"/><path d="M5 20c0-4.1 3.2-6.6 7-6.6s7 2.5 7 6.6"/>',
     upload: '<path d="M12 16.5V4.5"/><path d="M6.8 9.6 12 4.4l5.2 5.2"/><path d="M4.5 20h15"/>',
-    battery: '<rect x="2.5" y="8" width="16" height="8" rx="2"/><path d="M21 10.5v3"/>'
+    battery: '<rect x="2.5" y="8" width="16" height="8" rx="2"/><path d="M21 10.5v3"/>',
+    lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
   };
 
   const INITIAL_BOARD = {
@@ -1708,7 +1709,8 @@
         </main>`;
     }
     const boardOverlay = state.boardForced ? `<div class="board-overlay"><div class="board-overlay-card">${renderBoard()}</div></div>` : "";
-    const cinematic = scene.id === "photos" || scene.id === "finalNight" ? "cinematic-frame" : "";
+    const cinematic = scene.id === "photos" || scene.id === "finalNight" ? "cinematic-frame"
+      : scene.id === "reboot" ? "scene-reboot" : "";
     return `
       <main class="student-shell">
         <section class="student-frame ${cinematic}">
@@ -1916,7 +1918,7 @@
         <div class="clue-stamp"><span>${skipped ? "RESTORED" : "CLUE LOCKED"}</span><strong>${String(state.sceneIndex + 1).padStart(2, "0")}</strong></div>
         <div class="clue-main">
           ${accessGranted}${confidenceCollapse}
-          <small>YOUR CONCLUSION</small>
+          <small>${scene.id === "rootCause" ? "YOUR STRONGEST CONNECTIONS" : "YOUR CONCLUSION"}</small>
           ${renderSelectionSummary(scene)}
           ${scene.reveal ? `<div class="clue-proof"><span>WHY IT MATTERS</span><p>${escapeHtml(scene.reveal)}</p></div>` : ""}
         </div>
@@ -1954,7 +1956,8 @@
     const labels = choiceLabels(scene);
     if (Array.isArray(selected)) {
       const text = selected.map(function (item) { return labels[item] || item; }).join("; ");
-      return `<p><strong>Class selection:</strong> ${escapeHtml(text || "Evidence restored.")}</p>`;
+      const label = scene.id === "rootCause" ? "Your strongest connections:" : "Class selection:";
+      return `<p><strong>${label}</strong> ${escapeHtml(text || "Evidence restored.")}</p>`;
     }
     if (selected && labels[selected]) {
       const label = scene.id === "activity" ? "Recovered conclusion:" : "Class selection:";
@@ -2570,9 +2573,15 @@
       const red = choice[0] === "battery";
       return `<button class="cause-card ${active ? "selected" : ""} ${red ? "red-herring" : ""}" data-action="toggleMulti" data-scene="${scene.id}" data-value="${choice[0]}" data-max="6" aria-pressed="${active}"><span>${active ? "✓" : "+"}</span><strong>${escapeHtml(labels[choice[0]])}</strong></button>`;
     }).join("");
-    return `<div class="cause-layout"><section class="cause-brief"><small>CASE QUESTION</small><h3>What actually made the day unravel?</h3><p>There is no single cause. Select up to six factors that genuinely increased pressure — including the system pattern.</p><div class="cause-counter"><strong>${selected.length}</strong><span>/ 6 selected</span></div><button class="primary-action" data-action="submit">CLOSE THE CASE →</button></section><section class="cause-wall">${cards}</section></div>`;
+    return `<div class="cause-layout"><section class="cause-brief"><small>CASE QUESTION</small><h3>What actually made the day unravel?</h3><p>There is no single cause. Select up to six factors that genuinely increased pressure — including the system pattern. These are your strongest connections, not the only ones.</p><div class="cause-counter"><strong>${selected.length}</strong><span>/ 6 selected</span></div><button class="primary-action" data-action="submit">CLOSE THE CASE →</button></section><section class="cause-wall">${cards}</section></div>`;
   }
 
+  // Reconstruction: a highlight-reel recap, not a puzzle. All 9 narrative lines below stay
+  // byte-for-byte identical to before. The only addition is decoration: 3 nodes (sleep/lunch/
+  // priority) get a stronger echo of state those earlier scenes already produced -- read-only,
+  // photos/urgency are never touched or re-rendered -- the other 6 get the existing compact
+  // category-icon treatment. One-shot staggered settle on first mount only, gated by the same
+  // animatedCompletion ledger pattern used everywhere else in this file.
   function renderReconstructionScene() {
     const items = [
       ["1:51 AM", "Limited sleep", "Phone finally locks."],
@@ -2584,13 +2593,32 @@
       ["Evening", "Noise", "Messages and work pressure stack up."],
       ["Night", "Everything = urgent", "RESET.EXE tells Jordan to finish it all."],
       ["10:41 PM", "MODEL FAILURE", "The system cannot prioritise the accumulated context."]
-    ].map(function (item, index) {
-      return `<div class="reconstruction-node"><span class="node-index">${String(index + 1).padStart(2, "0")}</span><span class="timestamp">${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong><p>${escapeHtml(item[2])}</p></div>`;
+    ];
+    const justMounted = !animatedCompletion.reconstruction;
+    animatedCompletion.reconstruction = true;
+    const settle = function (index) {
+      return justMounted ? ` glitch-mount" style="animation-delay:${index * 80}ms">` : `">`;
+    };
+    const priorityDots = "<i></i><i></i><i></i><i></i>";
+    const lunchThumb = PHOTO_ASSETS[0] || "assets/lunch-recovered.svg";
+    const decor = [
+      `<span class="node-echo node-echo-lock${settle(0)}${icon("lock")}</span>`,
+      `<span class="node-icon${settle(1)}${icon("moon")}</span>`,
+      `<span class="node-icon${settle(2)}${icon("fork")}</span>`,
+      `<span class="node-icon${settle(3)}${icon("doc")}</span>`,
+      `<span class="node-echo node-echo-photo${settle(4)}<img src="${escapeHtml(lunchThumb)}" alt=""></span>`,
+      `<span class="node-icon${settle(5)}${icon("loop")}</span>`,
+      `<span class="node-icon${settle(6)}${icon("chat")}</span>`,
+      `<span class="node-echo node-echo-priority${settle(7)}${priorityDots}</span>`,
+      `<span class="node-icon${settle(8)}${icon("warning")}</span>`
+    ];
+    const nodes = items.map(function (item, index) {
+      return `<div class="reconstruction-node"><span class="node-index">${String(index + 1).padStart(2, "0")}</span>${decor[index]}<span class="timestamp">${escapeHtml(item[0])}</span><strong>${escapeHtml(item[1])}</strong><p>${escapeHtml(item[2])}</p></div>`;
     }).join("");
     return `
-      <div class="reconstruction-flow">${items}</div>
+      <div class="reconstruction-flow">${nodes}</div>
       <div class="root-cause-card">
-        <span>ROOT CAUSE</span>
+        <span>FULL SYSTEM RECONSTRUCTION</span>
         <h3>There wasn't one.</h3>
         <p>Pressure accumulated. RESET.EXE kept solving each problem separately instead of checking the whole situation.</p>
         <div class="root-tags"><span>CONTEXT</span><span>PRIORITY</span><span>BASIC NEEDS</span><span>STRATEGY REVIEW</span></div>

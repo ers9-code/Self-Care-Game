@@ -29,6 +29,7 @@
   // never replay on an unrelated re-render, a facilitator RE-SYNC, or a reconnect.
   const animatedPhotoSeq = {};
   const animatedCompletion = {};
+  const animatedAnchorSeq = {};
 
   const ICON_PATHS = {
     cap: '<path d="M12 4 3 9l9 5 9-5-9-5Z"/><path d="M7 11.2V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.8"/><path d="M21 9v5.2"/>',
@@ -151,11 +152,11 @@
           ["8:47 AM", "school Wi-Fi connected"]
         ]
       },
-      prompt: "Select the TWO events most likely connected to the extra time in bed.",
+      prompt: "SELECT THE TWO CLEAREST IMMEDIATE CONSEQUENCES BEFORE JORDAN REACHED SCHOOL.",
       max: 2,
       choices: [
         ["missedBus", "Missed usual bus"],
-        ["skippedBreakfast", "Skipped breakfast"],
+        ["skippedBreakfast", "Breakfast likely skipped"],
         ["laterArrival", "Later school arrival"],
         ["battery", "Phone battery fell"],
         ["friend", "Friend sent a message"]
@@ -1156,6 +1157,9 @@
       case "viewPhoto":
         viewPhoto(action.sceneId, Number(action.value));
         break;
+      case "lockAnchor":
+        lockAnchor(action.sceneId, action.value);
+        break;
       case "selectSortCard":
         state.selectedSortCard = state.selectedSortCard === action.card ? null : action.card;
         break;
@@ -1265,6 +1269,22 @@
       recovered: isNew ? prev.recovered.concat([index]) : prev.recovered.slice(),
       recoverySeq: (prev.recoverySeq || 0) + (isNew ? 1 : 0)
     };
+  }
+
+  // Device Activity: the student locks the two anchor events (phone-locked, first-alarm)
+  // instead of picking from a list. Once both are locked, the canonical single-answer
+  // selection ("b") is derived automatically via setSelection — evaluateScene/completeScene
+  // run completely unmodified against that value, same as a manual correct answer would.
+  function lockAnchor(sceneId, anchorId) {
+    if (!anchorId) return;
+    state.progress = state.progress || {};
+    const prev = state.progress[sceneId] || { locked: [] };
+    const locked = Array.isArray(prev.locked) ? prev.locked.slice() : [];
+    if (locked.indexOf(anchorId) < 0) locked.push(anchorId);
+    state.progress[sceneId] = { locked: locked };
+    if (sceneId === "activity" && locked.indexOf("late") >= 0 && locked.indexOf("morning") >= 0) {
+      setSelection(sceneId, "b");
+    }
   }
 
   function toggleEvidence(sceneId, key) {
@@ -1525,6 +1545,7 @@
     else if (type === "toggleMulti") userAction({ type: "toggleMulti", sceneId: sceneId, value: value, max: max });
     else if (type === "toggleEvidence") userAction({ type: "toggleEvidence", sceneId: sceneId, key: value });
     else if (type === "viewPhoto") userAction({ type: "viewPhoto", sceneId: sceneId, value: Number(value) });
+    else if (type === "lockAnchor") userAction({ type: "lockAnchor", sceneId: sceneId, value: value });
     else if (type === "selectSortCard") userAction({ type: "selectSortCard", card: value });
     else if (type === "placeSortCard") userAction({ type: "placeSortCard", sceneId: sceneId, bucket: value });
     else if (type === "replaceEnglishMove") userAction({ type: "replaceEnglishMove", value: value });
@@ -1899,10 +1920,57 @@
   }
 
   function renderChoiceScene(scene) {
+    if (scene.id === "activity") return renderActivityScene(scene);
     if (scene.id === "morningReview" || scene.id === "calendarQuestion" || scene.id === "photoReview") {
       return renderAuditContinuation(scene) + renderChoices(scene, "single");
     }
     return renderEvidence(scene) + renderChoices(scene, "single");
+  }
+
+  // Device Activity's own interaction: the two anchor events ARE the puzzle. Tapping both
+  // locks them, then the system connects them, computes the gap, and states the conclusion —
+  // no A/B/C/D. See lockAnchor() for how this reaches the same canonical selection value.
+  function renderActivityScene(scene) {
+    const prog = (state.progress && state.progress.activity) || { locked: [] };
+    const locked = Array.isArray(prog.locked) ? prog.locked : [];
+    const lateLocked = locked.indexOf("late") >= 0;
+    const morningLocked = locked.indexOf("morning") >= 0;
+    const bothLocked = lateLocked && morningLocked;
+
+    const seq = locked.length;
+    const isFreshLock = seq > (animatedAnchorSeq[scene.id] || 0);
+    if (isFreshLock) animatedAnchorSeq[scene.id] = seq;
+    const freshAnchorId = isFreshLock ? locked[locked.length - 1] : null;
+
+    function traceRow(row, isAnchor, isLocked, isFresh) {
+      const tag = isAnchor && !isLocked ? "button" : "div";
+      const attrs = isAnchor && !isLocked ? ` data-action="lockAnchor" data-scene="${scene.id}" data-value="${isAnchor === "late" ? "late" : "morning"}"` : "";
+      return `<${tag} class="trace-event ${isAnchor ? "anchor" : ""} ${isLocked ? "locked" : ""} ${isFresh ? "glitch-mount" : ""}"${attrs}><span>${escapeHtml(row[0])}</span><strong>${escapeHtml(row[1])}</strong>${isLocked ? '<i class="anchor-check">✓</i>' : ""}</${tag}>`;
+    }
+
+    const rows = scene.evidence.rows;
+    const late = rows.slice(0, 4).map(function (row, index) {
+      const isAnchor = index === 3 ? "late" : null;
+      return traceRow(row, isAnchor, isAnchor && lateLocked, isAnchor && freshAnchorId === "late");
+    }).join("");
+    const morning = rows.slice(4).map(function (row, index) {
+      const isAnchor = index === 0 ? "morning" : null;
+      return traceRow(row, isAnchor, isAnchor && morningLocked, isAnchor && freshAnchorId === "morning");
+    }).join("");
+
+    const gapLabel = bothLocked ? "4H 54M" : "OVERNIGHT GAP";
+    const gap = `<div class="overnight-gap ${bothLocked ? "connected" : ""}"><span>PHONE LOCKED</span><i></i><b>${escapeHtml(gapLabel)}</b><i></i><span>FIRST ALARM</span></div>`;
+    const trace = `<div class="device-trace"><section><header><small>ACTIVITY WINDOW A</small><strong>LATE NIGHT</strong></header><div class="trace-line">${late}</div></section>${gap}<section><header><small>ACTIVITY WINDOW B</small><strong>MORNING</strong></header><div class="trace-line morning">${morning}</div></section></div>`;
+
+    if (!bothLocked) {
+      return trace + `<div class="recovery-gate"><span>LOCK BOTH ANCHOR EVENTS TO CONTINUE</span><strong>${locked.length}/2 LOCKED</strong></div>`;
+    }
+
+    const justConnected = isFreshLock && bothLocked;
+    const conclusion = `<div class="data-recovered ${justConnected ? "glitch-mount" : ""}"><span>LIMITED SLEEP OPPORTUNITY</span><strong>Roughly 4 hours 54 minutes of sleep opportunity before the first alarm.</strong></div>`;
+    const log = renderResetLog("FATIGUE DETECTED", "Recommendation: Stay in bed longer. Rest supports wellbeing.", "6:45 AM", "moon", justConnected ? "glitch-mount" : "");
+    const actions = `<div class="decision-actions"><button class="primary-action" data-action="submit">LOCK DECISION →</button></div>`;
+    return trace + conclusion + log + actions;
   }
 
   // Continuation shell shared by the three "audit" scenes: a small read-only echo of the
@@ -2340,15 +2408,6 @@
 
   function renderEvidence(scene) {
     if (!scene.evidence) return "";
-    if (scene.id === "activity") {
-      const late = scene.evidence.rows.slice(0, 4).map(function (row, index) {
-        return `<div class="trace-event ${index === 3 ? "anchor" : ""}"><span>${escapeHtml(row[0])}</span><strong>${escapeHtml(row[1])}</strong></div>`;
-      }).join("");
-      const morning = scene.evidence.rows.slice(4).map(function (row, index) {
-        return `<div class="trace-event ${index === 0 ? "anchor" : ""}"><span>${escapeHtml(row[0])}</span><strong>${escapeHtml(row[1])}</strong></div>`;
-      }).join("");
-      return `<div class="device-trace"><section><header><small>ACTIVITY WINDOW A</small><strong>LATE NIGHT</strong></header><div class="trace-line">${late}</div></section><div class="overnight-gap"><span>PHONE LOCKED</span><i></i><b>OVERNIGHT GAP</b><i></i><span>FIRST ALARM</span></div><section><header><small>ACTIVITY WINDOW B</small><strong>MORNING</strong></header><div class="trace-line morning">${morning}</div></section></div>`;
-    }
     if (scene.id === "morning") {
       const glyphs = ["●","⌖","BUS","○","…","BUS","WIFI"];
       return `<div class="morning-route">${scene.evidence.rows.map(function (row, index) { return `<div class="route-node ${index === 2 || index === 3 ? "warning" : ""}"><span class="route-glyph">${escapeHtml(glyphs[index])}</span><div><small>${escapeHtml(row[0])}</small><strong>${escapeHtml(row[1])}</strong></div></div>`; }).join("")}</div>`;

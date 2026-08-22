@@ -629,6 +629,21 @@ html.view-student, body.view-student { background:#020407; }
 .hud-model { display:flex;align-items:center;gap:7px; }
 .hud-model i { display:inline-block;width:42px;height:4px;border-radius:99px;background:linear-gradient(90deg,var(--amber) var(--model),rgba(255,255,255,.08) var(--model)); }
 
+/* Override climax: while the local 61%->18%->4% collapse is still playing, the persistent
+   student HUD would otherwise show the already-final MODEL 4% at the same time -- two
+   contradictory confidence readouts on screen at once. Crossfades a neutral placeholder to
+   the real value once the collapse settles, purely visual, reading no extra state. */
+.hud-model-stack { display:inline-grid; }
+.hud-model-stack > span { grid-column:1; grid-row:1; }
+.hud-model-mask { opacity:1; animation: hudMaskOut 1.3s ease forwards; }
+.hud-model-value { opacity:0; animation: hudValueIn 1.3s ease forwards; }
+@keyframes hudMaskOut { 0%,82% { opacity:1; } 100% { opacity:0; } }
+@keyframes hudValueIn { 0%,82% { opacity:0; } 100% { opacity:1; } }
+@media (prefers-reduced-motion: reduce) {
+  .hud-model-mask { animation:none; opacity:0; }
+  .hud-model-value { animation:none; opacity:1; }
+}
+
 .day-track {
   position:relative; z-index:3; display:grid;grid-template-columns:repeat(6,1fr);align-items:center;
   padding:9px clamp(18px,2.3vmin,38px) 8px;background:rgba(5,9,14,.58); border-bottom:1px solid rgba(255,255,255,.05);

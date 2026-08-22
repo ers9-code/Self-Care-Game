@@ -1682,7 +1682,12 @@
       app.innerHTML = renderStudentShell(renderDisplayCheck(), { displayCheck: true });
       return;
     }
-    app.innerHTML = renderStudentShell(renderScenePanel(currentScene()), {});
+    const scene = currentScene();
+    // Read this before renderScenePanel runs -- it flips animatedCompletion.override to
+    // true internally (renderCompletedScene's own one-shot gate), so this is the only
+    // point where "is this the very first paint of the finished collapse" is still knowable.
+    const overrideCollapsing = scene.id === "override" && isSceneDone(scene) && !state.skipped[scene.id] && !animatedCompletion[scene.id];
+    app.innerHTML = renderStudentShell(renderScenePanel(scene), { overrideCollapsing: overrideCollapsing });
   }
 
   function renderStudentShell(sceneHtml, options) {
@@ -1712,7 +1717,9 @@
             <div class="hud-brand"><span class="hud-signal"></span><strong>RESET.EXE</strong><small>RECOVERY SESSION</small></div>
             <div class="hud-scene"><strong>${escapeHtml(meta.group)}</strong><span>${escapeHtml(meta.step)}</span></div>
             <div class="hud-status">
-              <span class="hud-model"><i style="--model:${state.confidence}%"></i>MODEL ${state.confidence}%</span>
+              <span class="hud-model"><i style="--model:${state.confidence}%"></i>${options && options.overrideCollapsing
+                ? `<span class="hud-model-stack"><span class="hud-model-mask">MODEL —%</span><span class="hud-model-value">MODEL ${state.confidence}%</span></span>`
+                : `MODEL ${state.confidence}%`}</span>
               <span data-live-timer>${formatTimer(getTimerElapsed())}</span>
             </div>
           </header>

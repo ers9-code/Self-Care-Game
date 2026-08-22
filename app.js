@@ -1185,6 +1185,9 @@
       case "toggleEvidence":
         toggleEvidence(action.sceneId, action.key);
         break;
+      case "revealAfternoonHistory":
+        revealAfternoonHistory(action.sceneId);
+        break;
       case "viewPhoto":
         viewPhoto(action.sceneId, Number(action.value));
         break;
@@ -1324,6 +1327,18 @@
       : {};
     current[key] = !current[key];
     state.selections[sceneId] = current;
+  }
+
+  // Afternoon Gap: "has the app history been recovered" lives in state.progress, entirely
+  // separate from state.selections[sceneId] (the interpretation answer, written by the
+  // ordinary selectSingle/setSelection path). Previously both were forced to share
+  // state.selections.afternoon via toggleEvidence's {history:true} flag -- the same slot
+  // setSelection overwrites the instant a choice is picked, so recovery state and answer
+  // state collided. This mirrors the existing state.progress.photos/activity shape.
+  function revealAfternoonHistory(sceneId) {
+    state.progress = state.progress || {};
+    const prev = state.progress[sceneId] || {};
+    state.progress[sceneId] = Object.assign({}, prev, { historyRecovered: !prev.historyRecovered });
   }
 
   function placeSortCard(sceneId, card, bucket) {
@@ -1575,6 +1590,7 @@
     if (type === "selectSingle") userAction({ type: "selectSingle", sceneId: sceneId, value: value });
     else if (type === "toggleMulti") userAction({ type: "toggleMulti", sceneId: sceneId, value: value, max: max });
     else if (type === "toggleEvidence") userAction({ type: "toggleEvidence", sceneId: sceneId, key: value });
+    else if (type === "revealAfternoonHistory") userAction({ type: "revealAfternoonHistory", sceneId: sceneId });
     else if (type === "viewPhoto") userAction({ type: "viewPhoto", sceneId: sceneId, value: Number(value) });
     else if (type === "lockAnchor") userAction({ type: "lockAnchor", sceneId: sceneId, value: value });
     else if (type === "selectSortCard") userAction({ type: "selectSortCard", card: value });
@@ -2231,17 +2247,14 @@
   }
 
   // Afternoon Gap: the recovered TikTok rows stagger in one at a time instead of dumping as
-  // a static table, so the duration reads as physically accumulating. Reuses the exact same
-  // toggleEvidence/current.history boolean gate already shipped -- only what renders when
-  // history is true changes. NOTE: selecting an interpretation choice overwrites
-  // state.selections.afternoon (via setSelection) with the plain answer id, which is the
-  // same slot toggleEvidence uses for {history:true} -- a pre-existing quirk (confirmed
-  // on the previous build too) where `current.history` reads back falsy the moment a choice
-  // is picked. Choices are therefore de-emphasised (not hard-gated/hidden) before recovery,
-  // so this quirk can never hide the submit control.
+  // a static table, so the duration reads as physically accumulating. "History recovered"
+  // lives in state.progress.afternoon.historyRecovered -- independent of state.selections
+  // .afternoon, which is exclusively the interpretation answer (via the ordinary
+  // selectSingle/setSelection path). Choices are de-emphasised (not hard-gated/hidden)
+  // before recovery so submit is always reachable and never depends on the answer state.
   function renderAfternoonScene(scene) {
-    const current = state.selections[scene.id] || {};
-    const open = Boolean(current && typeof current === "object" && current.history);
+    const prog = (state.progress && state.progress[scene.id]) || {};
+    const open = Boolean(prog.historyRecovered);
     const rows = [
       ["3:48", "TikTok opened"],
       ["4:06", "TikTok active"],
@@ -2263,7 +2276,7 @@
         <li class="timeline-item"><span class="timestamp">5:16 PM</span><span>Work message opened</span></li>
       </ul>
       <div class="action-row">
-        <button class="subtle-action" data-action="toggleEvidence" data-scene="${scene.id}" data-value="history">${open ? "HIDE APP HISTORY" : "RECOVER APP HISTORY"}</button>
+        <button class="subtle-action" data-action="revealAfternoonHistory" data-scene="${scene.id}">${open ? "HIDE APP HISTORY" : "RECOVER APP HISTORY"}</button>
       </div>
       ${strip}
       <div class="log-card system"><h3>3:44 PM - OVERLOAD DETECTED</h3><p>Recommendation: Take a break and do something enjoyable.</p></div>

@@ -41,6 +41,24 @@
   // urgent means nothing is prioritised" before the clean 3-bucket sort contrasts it.
   const PRIORITY_NOISE_ITEMS = ["English", "Friend messages", "Maths", "Uniform", "Shower", "Phone charging"];
 
+  const MESSAGE_THREADS = [
+    ["friend", "Friend", "4", ["you coming online tonight?", "??", "are you ignoring me", "okay then"]],
+    ["teacher", "Teacher", "SCHOOL", ["Just confirming tomorrow is the draft check. Final submission is Monday."]],
+    ["manager", "Manager", "WORK", ["Any chance you can start at 6 instead of 6:30?", "Thanks, appreciate it."]],
+    ["home", "Home", "HOME", ["Food is in the fridge."]],
+    ["random", "Random", "NOISE", ["streaks"]],
+    ["group", "Group chat", "NOISE", ["anyone know what room tomorrow"]]
+  ];
+
+  // Same reply content messageConsequence() already produces for these threads, isolated
+  // per-thread instead of joined into one paragraph. manager/random/group never appear here
+  // since no accepted combo (teacher+friend, teacher+home, friend+home) includes them.
+  const MESSAGE_REPLY_TEXT = {
+    teacher: "Jordan now knows English is not due tonight.",
+    friend: "“Not ignoring you. I’m wrecked and heading to work. I’ll talk tomorrow.” Friendship pressure reduces without starting a long conversation.",
+    home: "Jordan remembers food is available."
+  };
+
   const ACTION_ICONS = {
     english: "doc", maths: "cap", eat: "fork", friendFull: "chat", boundary: "shield",
     shower: "drop", scroll: "loop", perfectPrep: "sparkle", sleep: "moon"
@@ -1852,6 +1870,7 @@
     const body = !completed || scene.autoComplete ? renderSceneBody(scene)
       : scene.id === "photos" && !state.skipped[scene.id] ? renderPhotoScene(scene, { completed: true })
       : scene.id === "finalNight" && !state.skipped[scene.id] ? renderFinalActionsScene(scene, { completed: true })
+      : scene.id === "messages" && !state.skipped[scene.id] ? renderMessagesScene(scene, { completed: true })
       : renderCompletedScene(scene);
     return `
       <section class="scene-panel scene-panel-${scene.id} type-${scene.type}">
@@ -2295,17 +2314,38 @@
       <div class="afternoon-focus ${open ? "" : "dimmed"}">${renderChoices(scene, "single")}</div>`;
   }
 
-  function renderMessagesScene(scene) {
+  function renderMessagesScene(scene, opts) {
+    const completed = Boolean(opts && opts.completed);
     const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
-    const threads = [
-      ["friend", "Friend", "4", ["you coming online tonight?", "??", "are you ignoring me", "okay then"]],
-      ["teacher", "Teacher", "SCHOOL", ["Just confirming tomorrow is the draft check. Final submission is Monday."]],
-      ["manager", "Manager", "WORK", ["Any chance you can start at 6 instead of 6:30?", "Thanks, appreciate it."]],
-      ["home", "Home", "HOME", ["Food is in the fridge."]],
-      ["random", "Random", "NOISE", ["streaks"]],
-      ["group", "Group chat", "NOISE", ["anyone know what room tomorrow"]]
-    ];
-    const messages = threads.map(function (thread) {
+
+    if (completed) {
+      const justCompleted = !animatedCompletion[scene.id];
+      if (justCompleted) animatedCompletion[scene.id] = true;
+      const messages = MESSAGE_THREADS.map(function (thread) {
+        const id = thread[0];
+        const isSelected = selected.includes(id);
+        const replyDelay = justCompleted ? ` style="animation-delay:${selected.indexOf(id) * 100}ms"` : "";
+        const bubble = isSelected && MESSAGE_REPLY_TEXT[id]
+          ? `<div class="thread-reply ${justCompleted ? "glitch-mount" : ""}"${replyDelay}><span class="reply-tag">REPLY RECEIVED</span><p>${escapeHtml(MESSAGE_REPLY_TEXT[id])}</p></div>`
+          : "";
+        return `<div class="thread-card readonly ${isSelected ? "selected" : "dimmed"}"><span class="thread-avatar">${escapeHtml(thread[1].slice(0,1))}</span><span class="thread-content"><strong>${escapeHtml(thread[1])}</strong><small>${escapeHtml(thread[3].join(" · "))}</small>${bubble}</span><span class="thread-meta">${escapeHtml(thread[2])}${isSelected ? " ✓" : ""}</span></div>`;
+      }).join("");
+      const note = !selected.includes("teacher")
+        ? `<p>This leaves the English deadline clarity unresolved until the teacher message is checked.</p>`
+        : "";
+      return `
+        <div class="messages-layout">
+          <section class="messages-phone"><header><span>‹</span><strong>Messages</strong><b>14</b></header><div class="thread-list">${messages}</div></section>
+          <aside class="message-mission">
+            <span class="alert-time">5:17 PM</span><small>RESET.EXE ADVICE</small><h3>Respond to outstanding communication to reduce mental load.</h3>
+            <span class="clue-locked-tag">CLUE LOCKED ✓</span>
+            <div class="locked-footnote">${renderBoardUpdateSummary(scene)}${note}</div>
+            <div class="locked-next"><span class="file-status-locked">FILE COMPLETE <small>AWAITING NEXT FILE…</small></span></div>
+          </aside>
+        </div>`;
+    }
+
+    const messages = MESSAGE_THREADS.map(function (thread) {
       const active = selected.includes(thread[0]);
       return `<button class="thread-card ${active ? "selected" : ""}" data-action="toggleMulti" data-scene="${scene.id}" data-value="${thread[0]}" data-max="2" aria-pressed="${active}"><span class="thread-avatar">${escapeHtml(thread[1].slice(0,1))}</span><span class="thread-content"><strong>${escapeHtml(thread[1])}</strong><small>${escapeHtml(thread[3].join(" · "))}</small></span><span class="thread-meta">${escapeHtml(thread[2])}${active ? " ✓" : ""}</span></button>`;
     }).join("");

@@ -826,12 +826,26 @@ button.trace-event.anchor:hover::before, button.trace-event.anchor:focus-visible
 .anchor-check { position:absolute; top:6px; right:2px; color:var(--green); font:800 10px var(--mono); }
 
 .morning-route { position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:7px;padding:14px 12px;margin-bottom:11px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.022); }.morning-route::before { content:"";position:absolute;left:6%;right:6%;top:35px;height:2px;background:linear-gradient(90deg,#31515b,#35636b 58%,#27414a); }
-.route-node { position:relative;display:grid;justify-items:center;text-align:center;gap:7px;z-index:1; }.route-glyph { min-width:38px;height:38px;padding:0 6px;display:grid;place-items:center;border-radius:11px;border:1px solid rgba(84,224,216,.28);background:#0b171e;color:var(--cyan);font:800 9px var(--mono);box-shadow:0 0 0 5px #081016; }.route-node.warning .route-glyph { color:var(--amber);border-color:rgba(241,191,98,.38); }.route-node div { display:grid;gap:4px; }.route-node small { color:var(--amber);font:800 9px var(--mono); }.route-node strong { color:#dce6e8;font-size:11px;line-height:1.15; }
+.route-node { position:relative;display:grid;justify-items:center;text-align:center;gap:7px;z-index:1; }.route-glyph { min-width:38px;height:38px;padding:0 6px;display:grid;place-items:center;border-radius:11px;border:1px solid rgba(84,224,216,.28);background:#0b171e;color:var(--cyan);font:800 9px var(--mono);box-shadow:0 0 0 5px #081016; }.route-node.warning .route-glyph { color:var(--amber);border-color:rgba(241,191,98,.38); }.route-node div { display:grid;gap:4px; }.route-node small { color:var(--amber);font:800 clamp(10px,.85vmin,12px) var(--mono); }.route-node strong { color:#dce6e8;font-size:clamp(11px,.95vmin,13px);line-height:1.15; }
+.route-node.linked .route-glyph { color:var(--cyan-strong);border-color:rgba(84,224,216,.65);box-shadow:0 0 0 5px #081016, 0 0 14px rgba(84,224,216,.45); }
+.route-node.linked strong { color:#eafcfa; }
+
+.morning-tag-dock { border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));padding:11px 13px; }
+.morning-tag-strip { display:flex;flex-wrap:wrap;gap:8px;margin-top:9px; }
+.morning-tag {
+  display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--line);background:#121c22;color:var(--muted);
+  font:700 clamp(10px,.9vmin,12px)/1 var(--mono);letter-spacing:.02em;
+}
+.morning-tag.selected { border-color:var(--cyan-strong);background:rgba(84,224,216,.13);color:#eafcfa; }
+.tag-link-caret { width:6px;height:6px;border-radius:50%;background:var(--dim);flex-shrink:0; }
+.morning-tag.linked-tag.selected .tag-link-caret { background:var(--cyan-strong);box-shadow:0 0 8px rgba(84,224,216,.65); }
 
 @media (max-width:1180px), (max-height:760px) {
   .split-apps { height:clamp(210px,31vh,270px); }
-  .device-trace { gap:8px; }.device-trace>section { padding:9px; }.trace-event strong { font-size:10px; }.trace-line.morning { gap:4px; }
-  .morning-route { padding:9px 7px;gap:4px; }.route-glyph { min-width:31px;height:31px;box-shadow:0 0 0 3px #081016; }.morning-route::before { top:27px; }.route-node strong { font-size:9px; }
+  .device-trace { gap:8px; }.device-trace>section { padding:9px; }.trace-event strong { font-size:11px; }.trace-line.morning { gap:4px; }
+  .morning-route { padding:9px 7px;gap:4px; }.route-glyph { min-width:31px;height:31px;box-shadow:0 0 0 3px #081016; }.morning-route::before { top:27px; }.route-node strong { font-size:11px; }
+  .morning-tag-dock { padding:8px 10px; }.morning-tag { padding:6px 10px; }
   .thread-card { min-height:55px; }.messages-phone>header { height:40px; }
   .final-night-layout { grid-template-columns:minmax(300px,.58fr) minmax(500px,1.42fr); }.move-slot { min-height:42px; }
 }
@@ -1006,20 +1020,38 @@ button.trace-event.anchor:hover::before, button.trace-event.anchor:focus-visible
 }
 .data-recovered span { color:var(--cyan-strong); }
 
-/* Audit-scene continuation echo — condensed, read-only recap of the paired scene just resolved */
+/* Audit-scene continuation echo — condensed, read-only recap of the paired scene just resolved.
+   Given slightly more visual weight than a plain recap so it reads as "evidence that just
+   resolved," not filler above the real content. */
 .audit-echo {
-  display:flex; flex-direction:column; gap:5px; margin-bottom:6px; padding:8px 11px;
-  border:1px solid rgba(199,231,239,.14); border-radius:10px; background:rgba(255,255,255,.02);
+  display:flex; flex-direction:column; gap:6px; margin-bottom:7px; padding:10px 13px;
+  border:1px solid rgba(84,224,216,.2); border-left:3px solid rgba(84,224,216,.45); border-radius:10px;
+  background:linear-gradient(90deg, rgba(84,224,216,.05), rgba(255,255,255,.02));
 }
-.audit-echo-tag { color:var(--dim); font:800 clamp(8px,.72vmin,10px)/1 var(--mono); letter-spacing:.08em; }
-.audit-echo-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:2px; }
-.audit-echo-list li { color:var(--muted); font-size:clamp(9px,.85vmin,12px); line-height:1.3; }
+.audit-echo-tag { color:var(--cyan-strong); font:800 clamp(9px,.78vmin,11px)/1 var(--mono); letter-spacing:.08em; }
+.audit-echo-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:3px; }
+.audit-echo-list li { color:#dfeceb; font-size:clamp(10px,.92vmin,13px); line-height:1.32; }
 .audit-echo-list li::before { content:"✓ "; color:var(--green); }
-.audit-echo-photo { flex-direction:row; align-items:center; gap:10px; }
-.echo-thumb { width:clamp(38px,4vw,50px); aspect-ratio:4/3; border-radius:6px; overflow:hidden; flex-shrink:0; background:#141c22; }
+.audit-echo-photo { flex-direction:row; align-items:center; gap:12px; }
+.echo-thumb { width:clamp(46px,4.6vw,60px); aspect-ratio:4/3; border-radius:7px; overflow:hidden; flex-shrink:0; background:#141c22; }
 .echo-thumb img { width:100%; height:100%; object-fit:cover; filter:saturate(.7) brightness(.75) contrast(1.02); }
 .audit-echo-copy { min-width:0; }
-.audit-echo-copy p { margin:2px 0 0; color:#e2f0ef; font-size:clamp(10px,.9vmin,13px); line-height:1.3; }
+.audit-echo-copy p { margin:3px 0 0; color:#eafcfa; font-size:clamp(11px,.98vmin,14px); line-height:1.3; }
+
+/* Compact continuation header for the three quiet audit scenes — the previous evidence's echo
+   should carry the visual weight, not a full-height scene header repeated on a "new page." */
+.scene-morningReview .scene-header, .scene-calendarQuestion .scene-header, .scene-photoReview .scene-header {
+  padding-bottom:clamp(5px,.6vmin,9px); gap:12px;
+}
+.scene-morningReview .scene-header .source-mark, .scene-calendarQuestion .scene-header .source-mark, .scene-photoReview .scene-header .source-mark {
+  width:30px; height:30px; font-size:10px; border-radius:9px;
+}
+.scene-morningReview .scene-header .scene-heading h2, .scene-calendarQuestion .scene-header .scene-heading h2, .scene-photoReview .scene-header .scene-heading h2 {
+  font-size:clamp(18px,1.7vmin,26px);
+}
+.scene-morningReview .scene-header .scene-heading p, .scene-calendarQuestion .scene-header .scene-heading p, .scene-photoReview .scene-header .scene-heading p {
+  font-size:clamp(9px,.75vmin,11px); margin-top:2px;
+}
 .audit-context-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
 .audit-context-chips span {
   padding:3px 8px; border-radius:999px; border:1px solid rgba(199,231,239,.16);

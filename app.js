@@ -13,6 +13,16 @@
   const PHOTO_TIMES = ["12:39 PM", "12:54 PM", "1:08 PM"];
   const PHOTO_ASSETS = ["assets/lunch-recovered.svg", "assets/lunch-recovered.svg", "assets/lunch-recovered.svg"];
 
+  // Morning Trace: the 5 consequence choices render as compact tags directly under the
+  // route strip and light up the specific route node(s) they're inferred from, instead of
+  // a detached quiz panel. Mapping is an explicit id->route-index lookup, not text matching.
+  // toggleMulti/max/answer ids/evaluation are all reused completely unmodified.
+  const MORNING_TAG_ROUTE_MAP = {
+    missedBus: [2, 5],
+    skippedBreakfast: [3],
+    laterArrival: [6]
+  };
+
   const ACTION_ICONS = {
     english: "doc", maths: "cap", eat: "fork", friendFull: "chat", boundary: "shield",
     shower: "drop", scroll: "loop", perfectPrep: "sparkle", sleep: "moon"
@@ -1825,7 +1835,7 @@
         </div>
         <aside class="clue-side">${after}${renderBoardUpdateSummary(scene)}</aside>
         ${distinct}
-        <div class="clue-next"><span>Evidence added to the case file.</span><button class="primary-action" data-action="next">OPEN NEXT FILE →</button></div>
+        <div class="clue-next"><span>Evidence added to the case file.</span><span class="file-status-locked">FILE COMPLETE <small>AWAITING NEXT FILE…</small></span></div>
       </div>`;
   }
 
@@ -1860,7 +1870,8 @@
       return `<p><strong>Class selection:</strong> ${escapeHtml(text || "Evidence restored.")}</p>`;
     }
     if (selected && labels[selected]) {
-      return `<p><strong>Class selection:</strong> ${escapeHtml(labels[selected])}</p>`;
+      const label = scene.id === "activity" ? "Recovered conclusion:" : "Class selection:";
+      return `<p><strong>${label}</strong> ${escapeHtml(labels[selected])}</p>`;
     }
     return `<p><strong>Recovered evidence:</strong> ${escapeHtml(scene.expected || scene.objective)}</p>`;
   }
@@ -2011,7 +2022,35 @@
   }
 
   function renderMultiScene(scene) {
+    if (scene.id === "morning") return renderMorningScene(scene);
     return renderEvidence(scene) + renderChoices(scene, "multi");
+  }
+
+  function renderMorningScene(scene) {
+    const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
+    const linkedIndices = {};
+    selected.forEach(function (id) {
+      (MORNING_TAG_ROUTE_MAP[id] || []).forEach(function (i) { linkedIndices[i] = true; });
+    });
+    const glyphs = ["●", "⌖", "BUS", "○", "…", "BUS", "WIFI"];
+    const route = `<div class="morning-route">${scene.evidence.rows.map(function (row, index) {
+      const linked = Boolean(linkedIndices[index]);
+      return `<div class="route-node ${index === 2 || index === 3 ? "warning" : ""} ${linked ? "linked" : ""}"><span class="route-glyph">${escapeHtml(glyphs[index])}</span><div><small>${escapeHtml(row[0])}</small><strong>${escapeHtml(row[1])}</strong></div></div>`;
+    }).join("")}</div>`;
+
+    const max = scene.max || 2;
+    const countNote = `<span class="choice-count">${selected.length}/${max} selected</span>`;
+    const tags = scene.choices.map(function (choice) {
+      const id = choice[0];
+      const label = choice[1];
+      const isSelected = selected.includes(id);
+      const hasLink = Boolean(MORNING_TAG_ROUTE_MAP[id]);
+      return `<button class="morning-tag ${isSelected ? "selected" : ""} ${hasLink ? "linked-tag" : ""}" aria-pressed="${isSelected}" data-action="toggleMulti" data-scene="${scene.id}" data-value="${id}" data-max="${max}">${hasLink ? '<i class="tag-link-caret"></i>' : ""}<span>${escapeHtml(label)}</span></button>`;
+    }).join("");
+
+    const dock = `<div class="morning-tag-dock"><div class="decision-title"><div><small>${escapeHtml(sceneQuestionLabel(scene))}</small><h3>${escapeHtml(scene.prompt || "Choose from the evidence")}</h3></div>${countNote}</div><div class="morning-tag-strip">${tags}</div><div class="decision-actions"><button class="primary-action" data-action="submit">LOCK DECISION →</button></div></div>`;
+
+    return route + dock;
   }
 
   function renderConnectScene(scene) {
@@ -2408,10 +2447,6 @@
 
   function renderEvidence(scene) {
     if (!scene.evidence) return "";
-    if (scene.id === "morning") {
-      const glyphs = ["●","⌖","BUS","○","…","BUS","WIFI"];
-      return `<div class="morning-route">${scene.evidence.rows.map(function (row, index) { return `<div class="route-node ${index === 2 || index === 3 ? "warning" : ""}"><span class="route-glyph">${escapeHtml(glyphs[index])}</span><div><small>${escapeHtml(row[0])}</small><strong>${escapeHtml(row[1])}</strong></div></div>`; }).join("")}</div>`;
-    }
     if (scene.evidence.kind === "activityTable") {
       const rows = scene.evidence.rows.map(function (row) {
         return `<div class="activity-row"><span class="timestamp">${escapeHtml(row[0])}</span><span>${escapeHtml(row[1])}</span></div>`;

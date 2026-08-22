@@ -11,7 +11,7 @@
   const app = document.getElementById("app");
 
   const PHOTO_TIMES = ["12:39 PM", "12:54 PM", "1:08 PM"];
-  const PHOTO_ASSETS = ["assets/lunch-recovered-1239.svg", "assets/lunch-recovered-1254.svg", "assets/lunch-recovered-1308.svg"];
+  const PHOTO_ASSETS = ["assets/photo-lunch-1239.webp", "assets/photo-lunch-1254.webp", "assets/photo-lunch-1308.webp"];
 
   // Morning Trace: the 5 consequence choices render as compact tags directly under the
   // route strip and light up the specific route node(s) they're inferred from, instead of

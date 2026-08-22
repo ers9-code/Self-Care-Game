@@ -1899,7 +1899,47 @@
   }
 
   function renderChoiceScene(scene) {
+    if (scene.id === "morningReview" || scene.id === "calendarQuestion" || scene.id === "photoReview") {
+      return renderAuditContinuation(scene) + renderChoices(scene, "single");
+    }
     return renderEvidence(scene) + renderChoices(scene, "single");
+  }
+
+  // Continuation shell shared by the three "audit" scenes: a small read-only echo of the
+  // paired investigation scene that just resolved, then RESET.EXE's rule, then the judgment.
+  // Reads state already set by morning/calendar/photos — never writes to or re-renders them.
+  function renderAuditContinuation(scene) {
+    const cards = (scene.evidence && scene.evidence.cards) || [];
+    if (scene.id === "morningReview") {
+      const source = sceneById("morning");
+      const confirmed = (source && source.board && source.board.confirmed) || [];
+      const echo = `<div class="audit-echo"><span class="audit-echo-tag">MORNING TRACE · RESOLVED</span><ul class="audit-echo-list">${confirmed.map(function (line) { return `<li>${escapeHtml(line)}</li>`; }).join("")}</ul></div>`;
+      const card = cards[0] || ["ORIGINAL RECOMMENDATION", ""];
+      return echo + renderResetLog(card[0], card[1], null, "moon");
+    }
+    if (scene.id === "calendarQuestion") {
+      const calendarCard = cards[0] || ["CALENDAR", ""];
+      const portalCard = cards[1] || ["SCHOOL PORTAL", ""];
+      const recCard = cards[2] || ["RESET.EXE", ""];
+      const echo = `<div class="conflict-detected"><span>CONFLICT DETECTED · RESOLVED</span><strong>${escapeHtml(calendarCard[1])} vs. ${escapeHtml(portalCard[1])}</strong></div>`;
+      return echo + renderResetLog(recCard[0], recCard[1], null, "cap");
+    }
+    if (scene.id === "photoReview") {
+      const prog = photoProgress("photos");
+      const thumbIndex = prog.recovered.length ? prog.recovered[prog.recovered.length - 1] : 0;
+      const labels = choiceLabels(sceneById("photos"));
+      const conclusion = labels[state.selections.photos] || "Jordan spent most of lunch working.";
+      const stressCard = cards[0] || ["12:28 PM", "STRESS LEVEL ELEVATED"];
+      const recCard = cards[1] || ["Recommendation", ""];
+      const contextCard = cards[2] || ["Context", ""];
+      const echo = `<div class="audit-echo audit-echo-photo">
+        <span class="echo-thumb"><img src="${escapeHtml(PHOTO_ASSETS[thumbIndex] || "assets/lunch-recovered.svg")}" alt=""></span>
+        <div class="audit-echo-copy"><span class="audit-echo-tag">${escapeHtml(stressCard[0])} · ${escapeHtml(stressCard[1])}</span><p>${escapeHtml(conclusion)}</p></div>
+      </div>`;
+      const chips = `<div class="audit-context-chips"><span>${escapeHtml(contextCard[1])}</span></div>`;
+      return echo + renderResetLog(recCard[0], recCard[1], null, "fork") + chips;
+    }
+    return renderEvidence(scene);
   }
 
   function renderMultiScene(scene) {
@@ -2106,6 +2146,17 @@
           <strong>${escapeHtml(app)}</strong>
           <span class="notif-body">${escapeHtml(body)}</span>
           <small>${escapeHtml(time)}</small>
+        </div>
+      </div>`;
+  }
+
+  function renderResetLog(headline, body, time, iconName, extraClass) {
+    return `
+      <div class="reset-log-entry ${extraClass || ""}">
+        <span class="rle-icon">${icon(iconName || "sparkle")}</span>
+        <div class="rle-copy">
+          <div class="rle-head"><strong>${escapeHtml(headline)}</strong>${time ? `<small>${escapeHtml(time)}</small>` : ""}</div>
+          <p>${escapeHtml(body)}</p>
         </div>
       </div>`;
   }
@@ -2321,7 +2372,7 @@
     const selected = Array.isArray(state.selections[scene.id]) ? state.selections[scene.id] : [];
     const single = state.selections[scene.id] || "";
     const max = scene.max || 99;
-    const forensic = scene.id === "photos";
+    const forensic = scene.id === "photos" || scene.id === "morningReview" || scene.id === "calendarQuestion" || scene.id === "photoReview";
     const countNote = mode === "multi" && max < 99 ? `<span class="choice-count">${selected.length}/${max} selected</span>` : "";
     const choices = scene.choices.map(function (choice, index) {
       const id = choice[0];

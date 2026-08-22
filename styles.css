@@ -962,6 +962,62 @@ body.view-facilitator { background:#edf1f2;color:#172328;font-family:Inter,Arial
 }
 .forensic-card .choice-prefix { border-radius:3px; background:rgba(84,224,216,.12); color:var(--cyan-strong); }
 
+/* RESET.EXE "voice" card — used everywhere its recommendation/log appears outside a phone frame */
+.reset-log-entry {
+  display:flex; align-items:flex-start; gap:10px; margin-bottom:4px;
+  padding:clamp(9px,1.05vmin,13px) clamp(10px,1.1vmin,14px);
+  border-radius:12px; border:1px solid rgba(231,184,95,.28);
+  background:linear-gradient(90deg, rgba(231,184,95,.1), rgba(255,255,255,.02));
+}
+.reset-log-entry .rle-icon {
+  width:clamp(20px,2vmin,26px); height:clamp(20px,2vmin,26px); flex-shrink:0; margin-top:1px;
+  display:grid; place-items:center; border-radius:50%; background:rgba(231,184,95,.16); color:var(--amber);
+}
+.reset-log-entry .rle-icon .glyph-icon { width:60%; height:60%; }
+.reset-log-entry .rle-copy { flex:1; min-width:0; }
+.reset-log-entry .rle-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.reset-log-entry .rle-head strong { color:#f4ecd9; font:800 clamp(10px,.95vmin,13px)/1.25 var(--mono); letter-spacing:.03em; }
+.reset-log-entry .rle-head small { flex-shrink:0; color:var(--dim); font:700 clamp(8px,.72vmin,10px)/1 var(--mono); letter-spacing:.05em; white-space:nowrap; }
+.reset-log-entry p { margin:3px 0 0; color:var(--muted); font-size:clamp(9px,.85vmin,12px); line-height:1.32; }
+
+/* Detection-banner family — same visual grammar as .pattern-detected, different tone/copy per scene */
+.conflict-detected, .data-recovered {
+  display:flex; align-items:center; gap:10px; padding:9px 12px; margin-bottom:4px;
+  border-radius:10px;
+}
+.conflict-detected span, .data-recovered span { font:800 clamp(9px,.8vmin,11px)/1 var(--mono); letter-spacing:.09em; white-space:nowrap; }
+.conflict-detected strong, .data-recovered strong { color:#f3e3e3; font-weight:600; font-size:clamp(12px,1vmin,15px); }
+.conflict-detected {
+  border:1px solid rgba(255,104,115,.32);
+  background:linear-gradient(90deg, rgba(255,104,115,.12), rgba(255,255,255,.02));
+}
+.conflict-detected span { color:var(--red); }
+.data-recovered {
+  border:1px solid rgba(84,224,216,.32);
+  background:linear-gradient(90deg, rgba(84,224,216,.12), rgba(255,255,255,.02));
+}
+.data-recovered span { color:var(--cyan-strong); }
+
+/* Audit-scene continuation echo — condensed, read-only recap of the paired scene just resolved */
+.audit-echo {
+  display:flex; flex-direction:column; gap:5px; margin-bottom:6px; padding:8px 11px;
+  border:1px solid rgba(199,231,239,.14); border-radius:10px; background:rgba(255,255,255,.02);
+}
+.audit-echo-tag { color:var(--dim); font:800 clamp(8px,.72vmin,10px)/1 var(--mono); letter-spacing:.08em; }
+.audit-echo-list { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:2px; }
+.audit-echo-list li { color:var(--muted); font-size:clamp(9px,.85vmin,12px); line-height:1.3; }
+.audit-echo-list li::before { content:"✓ "; color:var(--green); }
+.audit-echo-photo { flex-direction:row; align-items:center; gap:10px; }
+.echo-thumb { width:clamp(38px,4vw,50px); aspect-ratio:4/3; border-radius:6px; overflow:hidden; flex-shrink:0; background:#141c22; }
+.echo-thumb img { width:100%; height:100%; object-fit:cover; filter:saturate(.7) brightness(.75) contrast(1.02); }
+.audit-echo-copy { min-width:0; }
+.audit-echo-copy p { margin:2px 0 0; color:#e2f0ef; font-size:clamp(10px,.9vmin,13px); line-height:1.3; }
+.audit-context-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+.audit-context-chips span {
+  padding:3px 8px; border-radius:999px; border:1px solid rgba(199,231,239,.16);
+  background:rgba(255,255,255,.02); color:var(--dim); font-size:clamp(8px,.75vmin,11px); line-height:1.3;
+}
+
 /* Photo Recovery — completed state (solved variant of the same scene, not a results page) */
 .pr-locked { display:flex; flex-direction:column; gap:8px; }
 .pr-locked .pattern-detected { margin-bottom:0; }

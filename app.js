@@ -61,6 +61,8 @@
   const animatedConflict = {};
   const animatedHistoryReveal = {};
   const animatedPriorityWall = {};
+  const animatedOpeningMount = {};
+  const animatedCurveballLog = {};
 
   const ICON_PATHS = {
     cap: '<path d="M12 4 3 9l9 5 9-5-9-5Z"/><path d="M7 11.2V16c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4.8"/><path d="M21 9v5.2"/>',
@@ -1862,10 +1864,19 @@
     const skipped = state.skipped[scene.id];
     const distinct = state.feedback[scene.id] && state.feedback[scene.id].distinct ? renderFeedback(state.feedback[scene.id]) : "";
     const after = scene.afterComplete ? `<div class="recovered-system-log"><span>RECOVERED SYSTEM LOG</span>${paragraphs(scene.afterComplete)}</div>` : "";
+    // Deleted Data: the one-shot "unlock" settle moment currently missing from a plain
+    // state flip. Reuses the existing detection-banner grammar (.data-recovered) and the
+    // same animatedCompletion ledger already used to gate photos/activity's own
+    // just-completed glitches, so it never replays on a later unrelated re-render.
+    const accessGranted = scene.id === "deletedData" && !skipped
+      ? `<div class="data-recovered ${!animatedCompletion[scene.id] ? "glitch-mount" : ""}"><span>ACCESS GRANTED</span><strong>Deleted data folder restored.</strong></div>`
+      : "";
+    if (scene.id === "deletedData" && !skipped) animatedCompletion[scene.id] = true;
     return `
       <div class="clue-reveal">
         <div class="clue-stamp"><span>${skipped ? "RESTORED" : "CLUE LOCKED"}</span><strong>${String(state.sceneIndex + 1).padStart(2, "0")}</strong></div>
         <div class="clue-main">
+          ${accessGranted}
           <small>YOUR CONCLUSION</small>
           ${renderSelectionSummary(scene)}
           ${scene.reveal ? `<div class="clue-proof"><span>WHY IT MATTERS</span><p>${escapeHtml(scene.reveal)}</p></div>` : ""}
@@ -1935,6 +1946,8 @@
   }
 
   function renderOpening(scene) {
+    const justMounted = !animatedOpeningMount[scene.id];
+    animatedOpeningMount[scene.id] = true;
     return `
       <div class="opening-cinematic">
         <div class="opening-copy">
@@ -1950,8 +1963,7 @@
           <button class="primary-action launch-action" data-action="begin"><span>BEGIN RECOVERY</span><b>→</b></button>
         </div>
         <div class="recovered-phone-wrap">
-          <div class="glitch-fragment glitch-a"></div><div class="glitch-fragment glitch-b"></div>
-          <div class="recovered-phone">
+          <div class="recovered-phone ${justMounted ? "glitch-mount" : ""}">
             <div class="phone-notch"></div>
             <div class="phone-topline"><span>RECOVERY MODE</span><b>3%</b></div>
             <div class="recovery-clock"><strong>10:47</strong><span>PM</span></div>
@@ -2458,11 +2470,10 @@
     const changing = state.selections[scene.id] && state.selections[scene.id].change;
     const planText = plan.length ? plan.map(function (id) { return labels[id] || id; }).join("; ") : "No plan locked yet.";
     const done = isSceneDone(scene);
+    const justMounted = !animatedCurveballLog[scene.id];
+    animatedCurveballLog[scene.id] = true;
     return `
-      <div class="log-card warning curveball-log">
-        <h3>NEW DATA RECOVERED</h3>
-        <p>English draft is already 80% complete. Draft check is tomorrow. Final submission is Monday.</p>
-      </div>
+      ${renderResetLog("NEW DATA RECOVERED", "English draft is already 80% complete. Draft check is tomorrow. Final submission is Monday.", null, "doc", justMounted ? "glitch-mount" : "")}
       <div class="priority-summary curveball-plan"><strong>Current three-move plan:</strong> ${escapeHtml(planText)}</div>
       ${containsEnglish && !done ? `<div class="priority-summary curveball-note"><strong>Investigation note:</strong> The new evidence changes English's urgency. CHANGE ONE MOVE is the stronger investigation path before locking the final plan.</div>` : ""}
       ${done ? "" : `<div class="action-row"><button class="primary-action" data-action="submit">KEEP PLAN</button><button data-action="toggleEvidence" data-scene="${scene.id}" data-value="change">CHANGE ONE MOVE</button></div>`}

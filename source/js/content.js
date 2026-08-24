@@ -64,13 +64,13 @@ const ROUND1 = {
   choices: [
     { id: "1", short: "TEN MORE MINUTES", label: "Sleep 10 more minutes, get dressed, grab food to take.", impact: 1,
       why: "A little more rest while still covering the basics.",
-      tradeoff: "Protects a little extra rest and still covers food. The trade-off is a tighter departure window and less room if anything else goes wrong." },
+      tradeoff: "The trade-off is a tighter departure window and less room if anything else goes wrong." },
     { id: "2", short: "BASICS FIRST", label: "Eat something quick, get dressed, leave non-essential things.", impact: 2,
       why: "Jordan simplifies the morning and protects two basics: food and getting out the door.",
-      tradeoff: "Protects food and getting out the door with less rushing. The trade-off is that non-essential things, including messages or a shower, may need to wait." },
+      tradeoff: "The trade-off is that non-essential things, including messages or a shower, may need to wait." },
     { id: "3", short: "SHOWER + TAKE FOOD", label: "Quick shower, get dressed, take food for later.", impact: 1,
       why: "Jordan chooses feeling awake and clean while still taking food.",
-      tradeoff: "Protects feeling ready for the day and still covers food. The trade-off is that the food is delayed and there is still very little spare time." },
+      tradeoff: "The trade-off is that the food is delayed and there is still very little spare time." },
     { id: "4", short: "TRY TO FIT IT ALL", label: "Shower, food, packing and messages.", impact: -1,
       why: "Each task is reasonable, but fitting everything into a rushed morning creates more pressure.",
       tradeoff: "Protects doing everything Jordan wants to do. The trade-off is almost no buffer, more rushing and more pressure if one task takes longer than expected." }
@@ -232,19 +232,19 @@ const ROUND4 = {
   choices: [
     { id: "eat_listen", short: "EAT + LISTEN", label: "Eat while listening.", impact: 1, lunch: "covered", hunger: false, friend: "resolved",
       why: "Jordan combines the conversation with lunch, so both immediate needs are covered.",
-      tradeoff: "Protects both lunch and the friend conversation at the same time. The trade-off is that Jordan does not get much separate downtime or space while eating.",
+      tradeoff: "The trade-off is that Jordan does not get much separate downtime or space while eating.",
       scripts: ["Come sit with me while I eat. Tell me what happened.", "I want to hear it — I’m going to eat while we talk."] },
     { id: "ten_first", short: "TEN MINUTES FIRST", label: "Eat for ten minutes first, then talk.", impact: 2, lunch: "covered", hunger: false, friend: "resolved",
       why: "Jordan sets a short, clear boundary, eats first, then follows through with the friend.",
-      tradeoff: "Protects Jordan’s immediate basic need and sets a clear short boundary, while still following through with the friend. The trade-off is that the friend waits ten minutes.",
+      tradeoff: "The trade-off is that the friend waits ten minutes.",
       scripts: ["Give me ten minutes to eat first, then I’ll come find you.", "I do want to talk. Can I eat first and find you in ten?"] },
     { id: "urgency", short: "CHECK URGENCY", label: "Check whether it needs to happen now.", impact: 1, lunch: "covered", hunger: false, friend: "pending",
       why: "Jordan checks whether the friend is okay. The friend says it can wait, so Jordan eats and the fuller conversation stays pending.",
-      tradeoff: "Protects lunch and checks whether the friend needs immediate support. The trade-off is that the full conversation moves later, so it remains something Jordan still needs to follow up.",
+      tradeoff: "The trade-off is that the full conversation moves later, so it remains something Jordan still needs to follow up.",
       scripts: ["Are you okay? If you are, can we talk after school?", "Is this urgent, or can we talk later when I’ve got more space?"] },
     { id: "go_now", short: "GO NOW", label: "Go with the friend straight away.", impact: -1, lunch: "missed", hunger: true, friend: "resolved",
       why: "Jordan gives the friend immediate attention, so the conversation is handled, but lunch is missed and hunger carries into the afternoon.",
-      tradeoff: "Protects the friend’s need for immediate conversation. The trade-off is that Jordan misses lunch and carries hunger into the afternoon.",
+      tradeoff: "The trade-off is that Jordan misses lunch and carries hunger into the afternoon.",
       scripts: ["Okay. Come on — tell me what happened.", "Yep, let’s go. What happened?"] }
   ],
   buildStateMutation(id) { return d => { const c = ROUND4.choices.find(x => x.id === id); d.energy = clampEnergy(d.energy + c.impact); d.lunchHistory = c.lunch; d.currentHunger = c.hunger; d.friendStatus = c.friend; }; },
@@ -400,7 +400,7 @@ const ROUND7 = {
     "Deliberate postponing vs avoidance — was this decided on purpose, with a plan?",
     "Bedtime as a limit, not an afterthought."
   ],
-  misconception: { claim: "Just finish everything tonight.", response: "Could Jordan physically do that? And what happens to sleep if we keep adding things? Sometimes the realistic, self-caring choice is to plan tomorrow properly instead of forcing tonight to hold everything." },
+  misconception: { claim: "Just finish everything tonight.", response: "There's a real limit here: bedtime. Every extra minute of work tonight is a minute taken straight off sleep. Sometimes the realistic, self-caring choice is to plan tomorrow properly instead of forcing tonight to hold everything." },
   selfCareLink: "Moving something to tomorrow is not automatically avoidance. It depends on whether the decision is deliberate, realistic and whether tomorrow can carry it."
 };
 
@@ -410,7 +410,7 @@ const ROUND8 = {
   question: "What should Jordan do?",
   voteAnticipation: "YOU’RE NOT GETTING ANY MORE INFORMATION. YOU HAVE 10 SECONDS.",
   choices: [
-    { id: "reply", short: "REPLY", label: "Reply: ‘What’s up?’", impact: 0, duration: 3, why: "Jordan opens the conversation without knowing how long it will become.", tradeoff: "Keeps the connection open tonight, but gives the message immediate attention and may create a longer conversation." },
+    { id: "reply", short: "REPLY", label: "Reply: ‘What’s up?’", impact: 0, duration: 3, why: "Jordan opens the conversation without knowing how long it will become.", tradeoff: "Keeps the connection open tonight, but Jordan has handed the rest of the night over to whatever comes back." },
     { id: "can_wait", short: "CHECK IF IT CAN WAIT", label: "‘I’m wrecked. Are you okay, or can we talk tomorrow?’", impact: 1, duration: 2, why: "Jordan checks whether there is an immediate need while also setting a clear limit for tonight.", tradeoff: "Protects sleep and still checks urgency, but the fuller conversation may move to tomorrow." },
     { id: "call", short: "CALL", label: "Call the friend.", impact: -2, duration: 12, why: "Jordan gives the message immediate time and attention by calling.", tradeoff: "Creates the most space for the friend tonight, but uses more time and energy at the end of the day." },
     { id: "morning", short: "LEAVE UNTIL MORNING", label: "Leave the message until morning.", impact: 1, duration: 0, why: "Jordan decides not to open a new conversation tonight.", tradeoff: "Protects the remaining night completely, but leaves the unanswered message until morning." }

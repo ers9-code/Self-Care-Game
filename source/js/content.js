@@ -434,9 +434,9 @@ const ROUND6 = {
   round: 6, time: "6:20 PM", part: "Home / Basketball", title: "HOME — AND THE DAY ISN’T DONE",
   autoEnergy: 0,
   getStory: (_rs, gs) => {
-    if (gs.homeTime === 1130) return ["Work ran late. Jordan gets home at 6:50 — too late for a normal 7:00 basketball start.", "The evening now has a genuine collision in it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
-    if (gs.trainingStart === 1160) return ["Jordan’s home around 6:20.", "Training’s moved to 7:20–8:50 — a bigger window before it, but a later night.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
-    return ["Jordan’s finally home.", "Basketball is 7:00–8:30, with getting-ready and travel fixed around it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
+    if (gs.homeTime === 1130) return ["None of what's waiting tonight came out of nowhere — some of it's from earlier choices, some of it just happened. Now the clock decides what's actually possible.", "Work ran late. Jordan gets home at 6:50 — too late for a normal 7:00 basketball start.", "The evening now has a genuine collision in it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
+    if (gs.trainingStart === 1160) return ["None of what's waiting tonight came out of nowhere — some of it's from earlier choices, some of it just happened. Now the clock decides what's actually possible.", "Jordan’s home around 6:20.", "Training’s moved to 7:20–8:50 — a bigger window before it, but a later night.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
+    return ["None of what's waiting tonight came out of nowhere — some of it's from earlier choices, some of it just happened. Now the clock decides what's actually possible.", "Jordan’s finally home.", "Basketball is 7:00–8:30, with getting-ready and travel fixed around it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
   },
   preTalk: ["Something isn’t fitting tonight. What goes?"],
   followingHomeHeading: "WHAT IS FOLLOWING JORDAN HOME?",

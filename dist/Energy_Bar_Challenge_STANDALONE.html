@@ -2469,21 +2469,23 @@ function renderReceipt(gs, rs) {
 /* =====================================================================
  * js/render-facilitator.js
  *
- * Renders the facilitator control screen. Every view follows the same
- * fixed teaching hierarchy, top to bottom, on one vertically-scrolling
- * page (no nested independently-scrolling panels):
+ * Renders the facilitator control screen — a GAME MASTER console. Every
+ * view follows the same fixed teaching hierarchy, top to bottom, on one
+ * vertically-scrolling page (no nested independently-scrolling panels):
  *
- *   1. STUDENTS CURRENTLY SEE   (exact text mirror of the student screen)
- *   2. SAY / READ               (natural spoken wording)
- *   3. ASK                      (1-3 specific questions for this moment)
- *   4. DO NOW                   (exact physical facilitator instructions)
- *   5. STUDENTS DO               (what students physically do)
- *   6. LIVE CONTROLS             (only appear after the facilitator already
- *                                 knows what's happening — i.e. after 1-5)
- *   7. DISCUSSION GUIDE
- *   8. IF NEEDED / DEPTH / DON'T SAY
- *   9. WHAT THIS CHANGES
- *  10. NEXT UP
+ *   1. RIGHT NOW                 (one-sentence summary of this moment)
+ *   2. STUDENTS CURRENTLY SEE    (exact text mirror of the student screen)
+ *   3. SAY / READ                (natural spoken wording)
+ *   4. ASK FIRST                 (1-3 questions asked BEFORE the decision)
+ *   5. STUDENTS DO                (what students physically do)
+ *   6. DO NOW                    (exact physical facilitator instructions)
+ *   7. LIVE CONTROLS             (only appear after the facilitator already
+ *                                 knows what's happening — i.e. after 1-6)
+ *   8. DISCUSSION GUIDE
+ *   9. IF STUDENTS ARE STUCK / SUGGESTED STUDENT ANSWERS / WHAT TO LISTEN
+ *      FOR / MISCONCEPTION TO CORRECT / SELF-CARE LINK / DEPTH / DON'T SAY
+ *  10. WHAT THIS CHANGES
+ *  11. NEXT UP
  * ===================================================================== */
 
 function optionScript(choices) { return (choices || []).map((c, i) => `${c.short || c.label || `Option ${i + 1}`}: ${c.label || ""}${c.role ? ` — ${c.role}` : ""}${c.meta ? ` (${c.meta})` : ""}`).join(" "); }
@@ -2759,8 +2761,10 @@ function renderController(gs) {
 
 function roundStory(round, gs, next, nextUp = "") {
   const story = typeof round.getStory === "function" ? round.getStory(getRunState(), gs) : round.story;
-  const auto = round.autoEnergy ? ` The Energy Bar has already changed by ${round.autoEnergy > 0 ? "+" : ""}${round.autoEnergy} because ${round.autoWhy || "of what has happened"}.` : "";
-  return shell({ round: `Round ${round.round}`, phase: `Story · ${round.time}`, say: `${story.join(" ")}${auto}`, ask: (round.preTalk || []).join(" ") || "What do you notice?", doNow: "Read the story aloud from this facilitator script so you do not have to rely on the projector. Then ask the discussion prompt and take 2–3 quick observations before opening the mechanic.", studentsDo: "Listen/read, discuss what matters in this moment, then see the decision mechanic.", changes: round.autoEnergy ? `${round.autoEnergy > 0 ? "+" : ""}${round.autoEnergy} automatic energy has already been applied because this event has happened.` : "No automatic energy change in this story.", nextUp, next });
+  const autoWhyText = (round.autoWhy || "of what has happened").replace(/\.\s*$/, "");
+  const auto = round.autoEnergy ? ` The Energy Bar has already changed by ${round.autoEnergy > 0 ? "+" : ""}${round.autoEnergy} because ${autoWhyText}.` : "";
+  const beat = round.title ? `${round.time} — ${round.title}. ` : "";
+  return shell({ round: `Round ${round.round}`, phase: `Story · ${round.time}`, say: `${beat}${story.join(" ")}${auto}`, ask: (round.preTalk || []).join(" ") || "What do you notice?", doNow: "Read the story aloud from this facilitator script so you do not have to rely on the projector. Then ask the discussion prompt and take 2–3 quick observations before opening the mechanic.", studentsDo: "Listen/read, discuss what matters in this moment, then see the decision mechanic.", changes: round.autoEnergy ? `${round.autoEnergy > 0 ? "+" : ""}${round.autoEnergy} automatic energy has already been applied because this event has happened.` : "No automatic energy change in this story.", nextUp, next });
 }
 
 function choiceButtons(round, phase, question, choices, prefix) {
@@ -2769,11 +2773,13 @@ function choiceButtons(round, phase, question, choices, prefix) {
   let doNow = "Read every option aloud from the script. Give students a few seconds to compare them, then use the LIVE CONTROLS to select the class decision. Do not reveal hidden Energy effects before the choice is locked.";
   let studentsDo = "Compare the options and choose deliberately. They are not hunting for a single correct answer.";
   let changes = "The locked choice updates Jordan’s state and determines what carries forward.";
+  let say = `${question} Here are the options: ${optionScript(choices)}`;
   if (round === "Round 3") {
     ask = "What question could each source answer — WHEN it is due, WHAT is required, or HOW MUCH work is left? What might still be missing after one check?";
     doNow = "Read all four sources and what each source is for. Then use the LIVE CONTROLS to choose the FIRST source Jordan checks. If that source is useful but incomplete, the program will automatically give you one direct follow-up check — do not treat the first choice as wrong.";
     studentsDo = "Choose the first information source, then notice whether the information is complete enough to plan.";
     changes = "Task Sheet/Teacher can establish the workload directly. Deadline/Peer can contribute useful partial information and trigger one follow-up check.";
+    say = `${question} ${choices.map(s => `${s.label} — ${s.tellsJordan}${s.stillUnknown ? ` Still unknown: ${s.stillUnknown}` : ""}`).join(" ")}`;
   } else if (round === "Round 4") {
     ask = "Which need does each approach protect first? Which approach leaves something waiting or gives Jordan less separate break time?";
     doNow = "Read all four approaches. Use the LIVE CONTROLS to choose the class approach. Do NOT discuss points yet — the next step is to build the exact words Jordan says, and the result is revealed only after that wording is locked.";
@@ -2785,7 +2791,7 @@ function choiceButtons(round, phase, question, choices, prefix) {
     studentsDo = "Choose the work response knowing it changes both extra pay and the amount of usable time before work.";
     changes = "The work response sets paid minutes and the size of the pre-work gap. The shift Energy cost is applied later, after the class uses the gap.";
   }
-  return shell({ round, phase, say: `${question} Here are the options: ${optionScript(choices)}`, ask, doNow, studentsDo, controls, changes, next: null });
+  return shell({ round, phase, say, ask, doNow, studentsDo, controls, changes, next: null });
 }
 
 function simpleResult(round, r, next) {
@@ -2891,7 +2897,7 @@ function renderReality(gs) {
   else if (lifeChecked && parked) controls += `<div class="reality-item"><strong>Parked phone stuff</strong><button class="btn sm" data-fac-action="r7:phone_check">Check · 5m · −1</button><button class="btn sm" data-fac-action="r7:phone_tomorrow">Leave to tomorrow</button></div>`;
   if (ready) controls += `<div class="reality-empty"><strong>NOTHING URGENT IS LEFT.</strong><small>No required decisions are left tonight. Any support planning shown above is optional.</small></div><button class="btn primary" data-fac-action="startR8">Go to Bed →</button>`;
   const stageNote = coreReady && !lifeChecked ? " Core tasks are settled; check the late interruption before closing any parked phone decision." : lifeChecked && parked ? " The late interruption has been dealt with; now close the remaining parked-phone decision." : "";
-  return shell({ round: "Round 7", phase: "Reality Check", say: `${ROUND7.intro} Right now it is ${formatTime(gs.currentTime)}. Target bed is ${formatTime(gs.targetBedtime || 1350)}. There are ${free} minutes free before bed and Tomorrow Load is ${gs.tomorrowLoad || 0} minutes.${stageNote}`, ask: "What genuinely still needs a decision on this path, and what can fit before bed without pretending the clock stops?", doNow: "Use the LIVE CONTROLS directly below this guide. Read the three live numbers first: current time, free before bed, Tomorrow Load. Work only through cards that actually appear. After every decision, the list rebuilds from what is still unresolved. When the late interruption check appears, run it before closing the final parked-phone decision. If nothing urgent remains, do not invent another task.", studentsDo: "Choose tonight versus tomorrow from the real unresolved queue. A late interruption can occur before the final parked-phone decision is closed.", controls, changes: "Time before 10:30 is used first. Only excess pushes bedtime later. Life Happens 3 is evaluated only from events still possible on this exact path." });
+  return shell({ round: "Round 7", phase: "Reality Check", say: `${ROUND7.intro} Right now it is ${formatTime(gs.currentTime)}. Target bed is ${formatTime(gs.targetBedtime || 1350)}. There are ${free} minutes free before bed and Tomorrow Load is ${gs.tomorrowLoad || 0} minutes.${stageNote}`, ask: (ROUND7.askBeforeChoices || []).join(" "), doNow: "Use the LIVE CONTROLS directly below this guide. Read the three live numbers first: current time, free before bed, Tomorrow Load. Work only through cards that actually appear. After every decision, the list rebuilds from what is still unresolved. When the late interruption check appears, run it before closing the final parked-phone decision. If nothing urgent remains, do not invent another task.", studentsDo: "Choose tonight versus tomorrow from the real unresolved queue. A late interruption can occur before the final parked-phone decision is closed.", controls, changes: "Time before 10:30 is used first. Only excess pushes bedtime later. Life Happens 3 is evaluated only from events still possible on this exact path." });
 }
 
 function renderLife3(gs) {

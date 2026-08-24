@@ -21,6 +21,23 @@ function bodyStory(round, gs, rs) {
   return `<div class="proj-clockrow"><span class="proj-time">${round.time}</span><span class="proj-part">${round.part}</span></div><h2 class="proj-title">${round.title}</h2><div class="proj-story-layout"><div class="proj-story-copy"><div class="proj-story">${story.map(x => `<p>${x}</p>`).join("")}</div>${round.autoEnergy ? `<div class="proj-auto-note">${round.autoEnergy > 0 ? "+" : ""}${round.autoEnergy} energy from what is happening before the choice.</div>` : ""}</div>${sceneVisual(round.round)}</div>`;
 }
 
+/** The dynamic "WHAT IS FOLLOWING JORDAN HOME?" list — built from real state, never invented. */
+function followingHomeChips(gs) {
+  const chips = [];
+  if (gs.assessmentRemaining > 0) chips.push(`${gs.assessmentRemaining} MIN OF ASSESSMENT`);
+  if (gs.dinnerStatus === "needed") chips.push("DINNER NOT YET COVERED");
+  if (gs.friendStatus === "pending") chips.push("FRIEND CONVERSATION PENDING");
+  if (gs.basketballStatus === "undecided") chips.push("BASKETBALL NOT YET DECIDED");
+  if (gs.tomorrowBasics !== "done") chips.push("TOMORROW BASICS NOT PACKED");
+  return chips;
+}
+
+function bodyStoryR6(gs, rs) {
+  const story = typeof ROUND6.getStory === "function" ? ROUND6.getStory(rs, gs) : ROUND6.story;
+  const chips = followingHomeChips(gs);
+  return `<div class="proj-clockrow"><span class="proj-time">${ROUND6.time}</span><span class="proj-part">${ROUND6.part}</span></div><h2 class="proj-title">${ROUND6.title}</h2><div class="proj-story-layout"><div class="proj-story-copy"><div class="proj-story">${story.map(x => `<p>${x}</p>`).join("")}</div><div class="proj-following"><strong>${ROUND6.followingHomeHeading}</strong><div class="proj-following-chips">${chips.length ? chips.map(c => `<span>${c}</span>`).join("") : `<span class="clear">NOTHING URGENT YET</span>`}</div></div></div>${sceneVisual(6)}</div>`;
+}
+
 function sceneVisual(round) {
   const src = ROUND_VISUALS?.[round];
   const labels = { 1: "Jordan rushing through the morning", 2: "Jordan managing phone notifications", 3: "Jordan checking assessment information", 4: "Jordan balancing lunch and a friend conversation", 5: "Jordan deciding how to use time before work", 6: "Jordan balancing basketball and the evening", 7: "Jordan reviewing what is still left tonight", 8: "Jordan seeing a late-night message" };
@@ -42,14 +59,15 @@ function lastDecisionFor(round, gs) {
 function resultBlock(round, gs) {
   const c = lastDecisionFor(round, gs);
   const impact = c?.impact;
-  return `<div class="proj-result"><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "" : `${impact > 0 ? "+" : ""}${impact}`}</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c.tradeoff}</div>` : ""}</div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "" : `${impact > 0 ? "+" : ""}${impact}`}</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c.tradeoff}</div>` : ""}</div></div>`;
 }
 
 function lifeBlock(slot, events, gs, rs) {
   const e = events.find(x => x.id === rs?.[slot]);
   if (!e) return `<div class="proj-life"><span class="proj-life-tag">Life Happens</span><div class="proj-life-title">No extra event on this path</div></div>`;
   const applied = gs.lifeEffectsApplied?.[slot];
-  return `<div class="proj-life"><span class="proj-life-tag">Life Happens</span><div class="proj-life-title">${e.title}</div><div class="proj-life-text">${e.text}</div><div class="proj-life-impact ${e.impact > 0 ? "gain" : e.impact < 0 ? "take" : "neutral"}">${applied ? `${e.impact > 0 ? "+" : ""}${e.impact}` : "?"}</div></div>`;
+  const anticipation = !applied ? `<div class="proj-anticipation proj-anticipation-dark">Something Jordan didn’t plan for is about to happen.</div>` : "";
+  return `<div class="proj-life">${anticipation}<span class="proj-life-tag">Life Happens</span><div class="proj-life-title">${e.title}</div><div class="proj-life-text">${e.text}</div><div class="proj-life-impact ${e.impact > 0 ? "gain" : e.impact < 0 ? "take" : "neutral"}">${applied ? `${e.impact > 0 ? "+" : ""}${e.impact}` : "?"}</div></div>`;
 }
 
 function renderBody(gs, rs, ui = {}) {
@@ -67,10 +85,13 @@ function renderBody(gs, rs, ui = {}) {
 
   if (v === "r2_story") return bodyStory(ROUND2, gs, rs);
   if (v === "r2_sort") return renderLiveSort(ui);
-  if (v === "r2_result") return `<div class="proj-result"><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">A deliberate attention plan</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "Jordan did not check the friend DM before class."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.</div></div>`;
+  if (v === "r2_result") {
+    const muted = [gs.groupChatStatus === "muted" ? "group chat" : null, gs.videosStatus === "muted" ? "videos" : null].filter(Boolean);
+    return `<div class="proj-result"><div class="proj-ownership">YOUR ATTENTION PLAN</div><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">A deliberate attention plan</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "The friend DM was left for later — Jordan does not know what it says yet."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.${muted.length ? `<div class="proj-tradeoff"><strong>GONE FOR GOOD</strong><br>The ${muted.join(" and ")} ${muted.length > 1 ? "were" : "was"} muted, so ${muted.length > 1 ? "they cannot" : "it cannot"} come back later today.</div>` : ""}</div></div>`;
+  }
 
   if (v === "r3_story") return bodyStory(ROUND3, gs, rs);
-  if (v === "r3_investigate") return choicesBlock(ROUND3, ROUND3.investigation.sources);
+  if (v === "r3_investigate") return renderR3Investigate();
   if (v === "r3_followup") {
     const first = lastDecisionFor(ROUND3, gs);
     const gap = first?.id === "deadline" ? "The calendar confirmed WHEN it is due, but not WHAT is left or HOW LONG it will take." : "The peer gave useful context, but cannot confirm Jordan’s exact remaining work.";
@@ -82,7 +103,7 @@ function renderBody(gs, rs, ui = {}) {
   if (v === "r4_choice") return choicesBlock(ROUND4);
   if (v === "r4_dialogue") {
     const c = lastDecisionFor(ROUND4, gs);
-    return `<div class="proj-clockrow"><span class="proj-time">12:45 PM</span><span class="proj-part">Build the response</span></div><div class="proj-question">What does Jordan actually say?</div><div class="dialogue-options">${c.scripts.map(s => `<div class="dialogue-bubble">“${s}”</div>`).join("")}</div><div class="projector-chiprow"><span>Or build class wording that keeps the same approach</span></div>`;
+    return `<div class="proj-clockrow"><span class="proj-time">12:45 PM</span><span class="proj-part">Build the response</span></div><div class="proj-question">${ROUND4.dialoguePrompt}</div><div class="dialogue-options">${c.scripts.map(s => `<div class="dialogue-bubble">“${s}”</div>`).join("")}</div><div class="projector-chiprow"><span>Or build class wording that keeps the same approach</span></div>`;
   }
   if (v === "r4_result") return renderProjectorR4Result(gs);
 
@@ -92,7 +113,7 @@ function renderBody(gs, rs, ui = {}) {
   if (v === "r5_work_result") return renderWorkResult(gs);
   if (v === "r5_life2") return lifeBlock("life2", ROUND5.lifeEvents, gs, rs);
 
-  if (v === "r6_story") return bodyStory(ROUND6, gs, rs);
+  if (v === "r6_story") return bodyStoryR6(gs, rs);
   if (v === "r6_basketball") return renderBasket(gs);
   if (v === "r6_timeline") return renderProjectorTimeline(gs);
   if (v === "r6_result") return renderProjectorTimeline(gs, true);
@@ -107,6 +128,11 @@ function renderBody(gs, rs, ui = {}) {
   if (v === "final_receipt") return renderReceipt(gs, rs);
 
   return `<div class="proj-opening"><h2>Jordan’s Day</h2><p>Waiting for the next decision…</p></div>`;
+}
+
+function renderR3Investigate() {
+  const sources = ROUND3.investigation.sources;
+  return `<div class="proj-clockrow"><span class="proj-time">${ROUND3.time}</span><span class="proj-part">${ROUND3.part}</span></div><div class="proj-question">${ROUND3.question}</div><div class="proj-choices proj-investigate">${sources.map((s, i) => `<div class="proj-choice"><div class="proj-choice-letter">${i + 1}</div><div class="proj-choice-text"><strong>${s.label}</strong><br><span>${s.role}</span><div class="proj-tells"><strong>WHAT THIS TELLS JORDAN</strong><br>${s.tellsJordan}</div>${s.stillUnknown ? `<div class="proj-unknown"><strong>WHAT IS STILL UNKNOWN</strong><br>${s.stillUnknown}</div>` : ""}</div></div>`).join("")}</div>`;
 }
 
 function renderProjectorR3Result(gs) {
@@ -124,26 +150,40 @@ function renderProjectorR4Result(gs) {
   const c = ROUND4.choices.find(x => x.id === log?.choiceId);
   const said = log?.summary || "Wording chosen by the class";
   const impact = c?.impact ?? 0;
-  return `<div class="proj-result"><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c?.tradeoff || ""}</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">THAT’S WHAT YOUR CLASS SAID.</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c?.tradeoff || ""}</div></div></div>`;
 }
 
 function renderLiveVote(round, ui) {
   const list = ui.runoffIds ? round.choices.filter(c => ui.runoffIds.includes(c.id)) : round.choices;
   const running = ui.timerStarted && !ui.timerExpired && ui.timerLeft > 0;
+  const notStarted = !ui.timerStarted && !ui.timerExpired;
   const timerPanel = ui.timerExpired ? `<div class="projector-countdown stopped">TIME STOPPED · HOLD YOUR VOTE</div>` : running ? `<div class="projector-countdown">${ui.timerLeft}</div>` : `<div class="projector-countdown ready">READY · ${round.voteTimerSeconds} SECONDS</div>`;
-  return `<div class="proj-clockrow"><span class="proj-time">${round.time}</span><span class="proj-part">Live vote</span></div><div class="proj-question">${round.question}</div>${timerPanel}<div class="proj-choices">${list.map((c, i) => { const count = ui.votes?.[c.id] || 0; return `<div class="proj-choice"><div class="proj-choice-letter">${/^\d+$/.test(String(c.id)) ? c.id : i + 1}</div><div class="proj-choice-text"><strong>${c.short || c.label}</strong>${c.short ? `<br><span>${c.label}</span>` : ""}</div><div class="vote-count">${count} ${count === 1 ? "vote" : "votes"}</div></div>`; }).join("")}</div>`;
+  const anticipation = notStarted && round.voteAnticipation ? `<div class="proj-anticipation">${round.voteAnticipation}</div>` : "";
+  return `<div class="proj-clockrow"><span class="proj-time">${round.time}</span><span class="proj-part">Live vote</span></div><div class="proj-question">${round.question}</div>${anticipation}${timerPanel}<div class="proj-choices">${list.map((c, i) => { const count = ui.votes?.[c.id] || 0; return `<div class="proj-choice"><div class="proj-choice-letter">${/^\d+$/.test(String(c.id)) ? c.id : i + 1}</div><div class="proj-choice-text"><strong>${c.short || c.label}</strong>${c.short ? `<br><span>${c.label}</span>` : ""}</div><div class="vote-count">${count} ${count === 1 ? "vote" : "votes"}</div></div>`; }).join("")}</div>`;
 }
 
 function renderLiveSort(ui) {
   const asg = ui.sortAssignments || {}, zones = { now: [], later: [], mute: [] }, un = [];
   for (const item of ROUND2.sortingItems) { const z = asg[item.id]; if (z && zones[z]) zones[z].push(item); else un.push(item); }
   const zone = (id, label) => `<div class="proj-sort-zone ${id}"><div class="proj-sort-zone-label">${label}</div>${zones[id].map(i => `<div class="proj-sort-item ${ui.checkedNowItem === i.id ? "checked-now" : ""}">${i.label}${ui.checkedNowItem === i.id ? " · CHECKING" : ""}</div>`).join("")}</div>`;
-  return `<div class="proj-clockrow"><span class="proj-time">${ROUND2.time}</span><span class="proj-part">Attention sort</span></div><div class="proj-question">${ROUND2.question}</div><div class="proj-sort-board">${zone("now", "NOW")}${zone("later", "LATER")}${zone("mute", "MUTE")}</div>${un.length ? `<div class="projector-chiprow">Unsorted: ${un.map(i => `<span>${i.label}</span>`).join("")}</div>` : ""}`;
+  const multipleNow = zones.now.length > 1 && !ui.checkedNowItem ? `<div class="proj-anticipation">${ROUND2.multipleNowPrompt}</div>` : "";
+  return `<div class="proj-clockrow"><span class="proj-time">${ROUND2.time}</span><span class="proj-part">Attention sort</span></div><div class="proj-question">${ROUND2.question}</div>${multipleNow}<div class="proj-sort-board">${zone("now", "NOW")}${zone("later", "LATER")}${zone("mute", "MUTE")}</div>${un.length ? `<div class="projector-chiprow">Unsorted: ${un.map(i => `<span>${i.label}</span>`).join("")}</div>` : ""}`;
+}
+
+function gapShortReason(action, gs) {
+  if (gs.workGapRemaining < action.duration && gs.workGapRemaining > 0) return `ONLY ${gs.workGapRemaining} MIN REMAIN`;
+  if (gs.workGapRemaining === 0) return "NO TIME LEFT";
+  if (action.id === "assessment" && gs.assessmentRemaining < 20) return "ALREADY DONE";
+  if (action.id === "friend" && gs.friendStatus !== "pending") return "ALREADY HANDLED";
+  if (action.id === "food" && !gs.currentHunger) return "NOT NEEDED";
+  if (action.id === "reset" && gs.workResetUsed) return "ALREADY USED";
+  if (action.id === "organise" && gs.organisedUsed) return "ALREADY USED";
+  return `NEEDS ${action.duration} MIN`;
 }
 
 function renderGap(gs) {
   const items = ROUND5.gapActions.map(a => ({ ...a, ...round5GapAvailability(gs, a) }));
-  return `<div class="proj-clockrow"><span class="proj-time">After school</span><span class="proj-part">Use the gap</span></div><div class="proj-question">${gs.workGapRemaining} of ${gs.workGapTotal} usable minutes remain</div><div class="gap-meter"><div class="gap-meter-fill" style="width:${gs.workGapTotal ? ((gs.workGapTotal - gs.workGapRemaining) / gs.workGapTotal) * 100 : 0}%"></div><span>${gs.workGapTotal - gs.workGapRemaining} min used</span></div><div class="projector-actiongrid gap-actions">${items.map(a => `<div class="${a.ok ? "" : "disabled"}"><strong>${a.label}</strong><span>${a.ok ? `${a.impact > 0 ? "+" : ""}${a.impact} · fits now` : `${a.reason}`}</span></div>`).join("")}</div><div class="projector-log">${(gs.workGapActions || []).map(a => `${a.label} · ${a.duration}m`).join("  |  ") || "Nothing selected yet. Leaving time open is allowed."}</div>`;
+  return `<div class="proj-clockrow"><span class="proj-time">After school</span><span class="proj-part">Use the gap</span></div><div class="proj-ownership">YOUR CLASS KEPT ${gs.workGapTotal} MINUTES. SPEND IT.</div><div class="proj-question">${gs.workGapRemaining} MIN LEFT</div><div class="gap-meter"><div class="gap-meter-fill" style="width:${gs.workGapTotal ? ((gs.workGapTotal - gs.workGapRemaining) / gs.workGapTotal) * 100 : 0}%"></div><span>${gs.workGapTotal - gs.workGapRemaining} min used</span></div><div class="projector-actiongrid gap-actions">${items.map(a => `<div class="${a.ok ? "" : "disabled"}"><strong>${a.label}</strong><span>${a.ok ? `${a.impact > 0 ? "+" : ""}${a.impact} · fits now` : gapShortReason(a, gs)}</span></div>`).join("")}</div><div class="projector-log">${(gs.workGapActions || []).map(a => `${a.label} · ${a.duration}m`).join("  |  ") || "Nothing selected yet. Leaving time open is allowed."}</div>`;
 }
 
 function renderWorkResult(gs) {
@@ -151,7 +191,11 @@ function renderWorkResult(gs) {
   const hungerPenalty = gs.currentHunger ? -3 : 0;
   const total = (work?.workImpact || 0) + hungerPenalty;
   const hunger = gs.currentHunger ? `<div class="proj-tradeoff"><strong>EARLIER CHOICE CARRIES FORWARD</strong><br>Jordan started work still hungry. That adds −3 because the missed food need was still active.</div>` : `<div class="proj-tradeoff"><strong>WHAT CARRIED INTO WORK</strong><br>Jordan did not start the shift with an unresolved hunger penalty.</div>`;
-  return `<div class="proj-result"><div class="proj-result-impact ${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div><div class="proj-result-why">${work?.why || "The work choice now plays out."}<br>Shift Energy: ${work?.workImpact || 0}. Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"} · ${gs.workGapRemaining || 0} min of the pre-work gap was left open.</div></div></div>`;
+  const used = gs.workGapActions || [];
+  const spendList = used.length
+    ? `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong>${used.map(a => `<span class="spend-check">✓ ${a.label}</span>`).join("")}${gs.workGapRemaining > 0 ? `<span class="spend-cross">✕ ${gs.workGapRemaining} MIN — DIDN’T FIT / LEFT OPEN</span>` : ""}</div>`
+    : `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong><span class="spend-cross">✕ LEFT OPEN — NOTHING SPENT</span></div>`;
+  return `<div class="proj-result">${spendList}<div class="proj-result-impact ${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div><div class="proj-result-why">${work?.why || "The work choice now plays out."}<br>Shift Energy: ${work?.workImpact || 0}. Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"}.</div></div></div>`;
 }
 
 function renderBasket(gs) {
@@ -168,8 +212,8 @@ function fixedEveningBlocks(gs) {
 
 function renderProjectorTimeline(gs, done = false) {
   const windows = flexibleWindows(gs), fixed = fixedEveningBlocks(gs);
-  const reflow = gs.basketballStatus === "skip" ? `<div class="timeline-reflow"><strong>SKIP SELECTED</strong> Basketball and travel were removed. The evening has been rebuilt as open time.</div>` : "";
-  return `<div class="proj-clockrow"><span class="proj-time">Evening</span><span class="proj-part">Real clock</span></div><div class="proj-question">${done ? "THE EVENING YOU BUILT" : "Build the evening — make the limited time fit"}</div>${reflow}<div class="fixed-evening-strip">${fixed.map(b => `<div><span>${b.label}</span><strong>${b.time}</strong></div>`).join("")}</div><div class="timeline-boundary"><strong>PLAN UNTIL 10:00 PM</strong><span>10:00–10:30 stays as the final Reality Check / get-ready-for-bed buffer</span></div><div class="timeline-windows">${windows.map(w => `<div class="timeline-window"><strong>${formatTime(w.start)}–${formatTime(w.end)}</strong><span>${w.label}</span>${(gs.eveningActions || []).filter(a => a.start >= w.start && a.end <= w.end).slice().sort((a, b) => a.start - b.start || a.end - b.end).map(a => `<div class="timeline-action">${formatTime(a.start)} ${a.label}</div>`).join("") || `<div class="timeline-open">OPEN TIME</div>`}</div>`).join("")}</div>${done ? "" : `<div class="timeline-palette">${ROUND6.actions.map(a => { const av = actionAvailability(gs, a); return `<span class="${av.ok ? "" : "disabled"}"><strong>${a.label} · ${a.duration}m · ${a.impact > 0 ? "+" : ""}${a.impact}</strong><small>${av.ok ? "available" : av.reason}</small></span>`; }).join("")}</div>`}<div class="projector-chiprow">Assessment left ${gs.assessmentRemaining}m · Friend ${gs.friendStatus || "not pending"} · Dinner ${gs.dinnerStatus} · Tomorrow basics ${gs.tomorrowBasics}</div>`;
+  const reflow = gs.basketballStatus === "skip" ? `<div class="timeline-reflow"><strong>BASKETBALL REMOVED / TIME RELEASED</strong> The evening has been rebuilt as one open block.</div>` : `<div class="timeline-reflow"><strong>THE EVENING REBUILDS.</strong> Travel and basketball are now fixed into the clock around the rest of the plan.</div>`;
+  return `<div class="proj-clockrow"><span class="proj-time">Evening</span><span class="proj-part">Real clock</span></div><div class="proj-question">${done ? "THE EVENING YOU BUILT" : "Build the evening — make the limited time fit"}</div>${reflow}<div class="fixed-evening-strip">${fixed.map(b => `<div><span>${b.label}</span><strong>${b.time}</strong></div>`).join("")}</div><div class="timeline-boundary"><strong>PLAN UNTIL 10:00 PM</strong><span>10:00–10:30 stays as the final Reality Check / get-ready-for-bed buffer</span></div>${done ? "" : `<div class="timeline-tension">${ROUND6.notEverythingFits}</div>`}<div class="timeline-windows">${windows.map(w => `<div class="timeline-window"><strong>${formatTime(w.start)}–${formatTime(w.end)}</strong><span>${w.label}</span>${(gs.eveningActions || []).filter(a => a.start >= w.start && a.end <= w.end).slice().sort((a, b) => a.start - b.start || a.end - b.end).map(a => `<div class="timeline-action">${formatTime(a.start)} ${a.label}</div>`).join("") || `<div class="timeline-open">OPEN TIME</div>`}</div>`).join("")}</div>${done ? "" : `<div class="timeline-palette">${ROUND6.actions.map(a => { const av = actionAvailability(gs, a); return `<span class="${av.ok ? "" : "disabled"}"><strong>${a.label} · ${a.duration}m · ${a.impact > 0 ? "+" : ""}${a.impact}</strong><small>${av.ok ? "available" : av.reason}</small></span>`; }).join("")}</div>`}<div class="projector-chiprow">Assessment left ${gs.assessmentRemaining}m · Friend ${gs.friendStatus || "not pending"} · Dinner ${gs.dinnerStatus} · Tomorrow basics ${gs.tomorrowBasics}</div>`;
 }
 
 function renderProjectorReality(gs, rs = {}) {
@@ -184,9 +228,10 @@ function renderProjectorReality(gs, rs = {}) {
   if (coreReady && !lifeChecked) cards.push({ title: "One last interruption check", opts: ["See what life throws at Jordan before closing the final phone decision"] });
   else if (lifeChecked && parked) cards.push({ title: "Parked phone stuff", opts: ["Check · 5m", "Leave to tomorrow"] });
   const done = coreReady && lifeChecked && !parked;
-  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.currentTime)}</span><span class="proj-part">Reality Check</span></div><div class="reality-projector"><div><span>Target bed</span><strong>${formatTime(gs.targetBedtime || 1350)}</strong></div><div><span>Free before bed</span><strong>${Math.max(0, (gs.targetBedtime || 1350) - (gs.currentTime || 0))} min</strong></div><div><span>Tomorrow Load</span><strong>${gs.tomorrowLoad || 0} min</strong></div></div>${cards.length ? `<div class="reality-cards">${cards.map(c => `<div class="reality-card"><strong>${c.title}</strong><div>${c.opts.map(o => `<span>${o}</span>`).join("")}</div></div>`).join("")}</div>` : done ? `<div class="projector-focus"><h2>NOTHING URGENT IS LEFT.</h2><p>The class has already dealt with what genuinely needed a decision tonight.</p></div>` : ""}`;
+  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.currentTime)}</span><span class="proj-part">Reality Check</span></div><div class="proj-question proj-stop">${ROUND7.stopHeading}</div><div class="reality-projector"><div><span>Target bed</span><strong>${formatTime(gs.targetBedtime || 1350)}</strong></div><div><span>Free before bed</span><strong>${Math.max(0, (gs.targetBedtime || 1350) - (gs.currentTime || 0))} min</strong></div><div><span>Tomorrow Load</span><strong>${gs.tomorrowLoad || 0} min</strong></div></div>${cards.length ? `<div class="reality-cards">${cards.map(c => `<div class="reality-card"><strong>${c.title}</strong><div>${c.opts.map(o => `<span>${o}</span>`).join("")}</div></div>`).join("")}</div>` : done ? `<div class="projector-focus"><h2>NOTHING URGENT IS LEFT.</h2><p>The class has already dealt with what genuinely needed a decision tonight.</p></div>` : ""}`;
 }
 
 function renderReceipt(gs, rs) {
-  return `<div class="receipt-projector"><h2>${FINAL.title}</h2><div class="receipt-grid">${FINAL.getReceipt(rs, gs).map(x => `<div><span>${x.label}</span><strong>${x.value}</strong></div>`).join("")}</div><div class="receipt-questions">${FINAL.debrief.map(q => `<p>${q}</p>`).join("")}</div><h3>${FINAL.closing}</h3><p class="receipt-closing-copy">${FINAL.closingScript}</p></div>`;
+  const summary = typeof FINAL.getStorySummary === "function" ? FINAL.getStorySummary(rs, gs) : [];
+  return `<div class="receipt-projector"><h2>${FINAL.title}</h2>${summary.length ? `<div class="receipt-summary">${summary.map(s => `<p>${s}</p>`).join("")}</div>` : ""}<div class="receipt-grid">${FINAL.getReceipt(rs, gs).map(x => `<div><span>${x.label}</span><strong>${x.value}</strong></div>`).join("")}</div><div class="receipt-questions">${FINAL.debrief.map(q => `<p>${q}</p>`).join("")}</div><h3>${FINAL.closing}</h3><p class="receipt-closing-copy">${FINAL.closingScript}</p></div>`;
 }

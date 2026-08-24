@@ -89,13 +89,69 @@ function discussionPromptsForView(v, gs) {
   return ["What did this protect?", "What did it cost, move or leave unresolved?"];
 }
 
+/** Maps a viewDescriptor to the ROUND content object that owns its teaching-support data (stuckPrompts, suggestedAnswers, listenFor, misconception, selfCareLink). */
+function roundForView(v) {
+  if (v.startsWith("r1")) return ROUND1;
+  if (v.startsWith("r2")) return ROUND2;
+  if (v.startsWith("r3")) return ROUND3;
+  if (v.startsWith("r4")) return ROUND4;
+  if (v.startsWith("r5")) return ROUND5;
+  if (v.startsWith("r6")) return ROUND6;
+  if (v.startsWith("r7")) return ROUND7;
+  if (v.startsWith("r8")) return ROUND8;
+  return null;
+}
+
+/** RIGHT NOW — one short sentence naming exactly what is happening on screen at this moment. */
+function rightNowForView(v) {
+  const map = {
+    home: "Waiting to begin. Students should only see the title card.",
+    opening_brainstorm: "Students are brainstorming what self-care means, before anything is taught.",
+    opening_jordan: "Students are meeting Jordan and hearing the competing priorities already in the day.",
+    opening_energy: "You are explaining what the Energy Bar does and does not mean, before Round 1 starts.",
+    r1_story: "Students are hearing the 7:10 AM morning situation, before the vote opens.",
+    r1_vote: "Students are voting on Jordan’s morning plan under a 15-second clock.",
+    r1_result: "Students are seeing the immediate Energy consequence of the morning plan they chose.",
+    r1_life: "Something Jordan did not choose is about to change the locked-in morning plan.",
+    r2_story: "Students are hearing about the four things competing for Jordan’s attention at 8:45 AM.",
+    r2_sort: "Students are sorting every attention demand into NOW, LATER or MUTE.",
+    r2_result: "Students are seeing what their attention plan revealed and what it locked away.",
+    r3_story: "Students are hearing the 10:25 AM deadline surprise.",
+    r3_investigate: "Students are choosing which information source Jordan checks first.",
+    r3_followup: "The first source was useful but incomplete — students are choosing the direct follow-up check.",
+    r3_result: "Students are seeing exactly what Jordan now knows about the assessment.",
+    r4_story: "Students are hearing about two legitimate lunchtime needs colliding at once.",
+    r4_choice: "Students are choosing Jordan’s approach to lunch and the friend at the same time.",
+    r4_dialogue: "The approach is locked. Students are now writing Jordan’s exact words before any consequence is revealed.",
+    r4_result: "Students are seeing what Jordan’s exact wording actually resolved.",
+    r5_story: "Students are hearing the manager’s message asking Jordan to start early.",
+    r5_choice: "Students are deciding how much of the afternoon Jordan is willing to trade for extra paid minutes.",
+    r5_gap: "Students are spending Jordan’s real, limited pre-work minutes on competing actions.",
+    r5_work_result: "Students are seeing how the work shift itself, plus anything left unresolved, plays out.",
+    r5_life2: "Something Jordan did not choose is about to reshape tonight’s schedule.",
+    r6_story: "Students are seeing what a real evening now has to carry, before deciding basketball.",
+    r6_basketball: "Students are deciding whether basketball stays in tonight’s plan.",
+    r6_timeline: "Students are building the evening on a real clock — not everything is guaranteed to fit.",
+    r6_result: "Students are looking at the evening the class actually managed to build.",
+    r7_reality: "Students are deciding, item by item, what genuinely still needs attention tonight versus tomorrow.",
+    r7_life3: "One last possible interruption is being checked before the final phone decision closes.",
+    r8_story: "Students are seeing the final late-night message, with no extra information.",
+    r8_choice: "Students are voting on Jordan’s very last decision of the day under a 10-second clock.",
+    r8_result: "Students are seeing the final minutes and Energy change of the whole day.",
+    final_receipt: "Students are looking at the full day they built, not just the final Energy number."
+  };
+  if (map[v]) return map[v];
+  if (v.startsWith("r1_discuss:")) return "The class has locked a morning plan. You are discussing the trade-off before revealing the Energy result.";
+  return "Guide the class through the current screen using the script below.";
+}
+
 function comingNextForView(v) {
   const map = {
     opening_brainstorm: "Next: meet Jordan and identify the competing priorities already in the day.",
     opening_jordan: "Next: explain exactly what the Energy Bar means — and what it does NOT mean.",
     opening_energy: "Next: Round 1 begins with an automatic Energy drop from poor sleep and rushing, before the class makes any choice.",
     r1_vote: "After the timer stops: lock the class choice, discuss the trade-off BEFORE revealing Energy.",
-    r1_result: "Next: a Life Happens event changes the morning without Jordan choosing it.",
+    r1_result: "PLAN LOCKED. THEN LIFE HAPPENS… Next: an event changes the morning without Jordan choosing it.",
     r1_life: "Next: arrival at school and a NOW / LATER / MUTE attention sort.",
     r2_sort: "After every item is placed: if more than one is NOW, select the one item Jordan actually checks.",
     r2_result: "Next: a deadline surprise creates uncertainty; the class investigates what information Jordan actually needs.",
@@ -127,22 +183,49 @@ function comingNextForView(v) {
  */
 function shell({ round, phase, say = "", ask = null, doNow = "", studentsDo = "", controls = "", extra = "", ifNeeded = [], depth = [], dontSay = "", changes = "", nextUp = "", next = null }) {
   const gs = getGameState(), v = gs.viewDescriptor || "home", g = guidanceForView(v);
+  const roundData = roundForView(v);
   const mergedIf = [...(g.ifNeeded || []), ...(ifNeeded || [])], mergedDepth = [...(g.depth || []), ...(depth || [])];
   const discussion = discussionPromptsForView(v, gs);
   const upcoming = nextUp || comingNextForView(v);
   const details = (label, arr) => arr?.length ? `<details class="fac-collapse"><summary>${label}</summary><div class="fac-collapse-body"><ul>${arr.map(x => `<li>${x}</li>`).join("")}</ul></div></details>` : "";
   const cursor = getCursor(), historyList = getHistory();
   const canBack = cursor > 0, canForward = cursor < historyList.length - 1;
-  const askCard = (ask !== null && String(ask).trim() !== "") ? `<div class="fac-card fac-ask"><div class="fac-card-label">2 · ASK</div><p>${ask}</p></div>` : "";
-  return `<div class="fac-card fac-section-head"><div class="fac-card-label">${round} · ${phase}</div><p>${g.purpose}</p></div>
+  const askCard = (ask !== null && String(ask).trim() !== "") ? `<div class="fac-card fac-ask"><div class="fac-card-label">ASK FIRST — BEFORE THE DECISION</div><p>${ask}</p></div>` : "";
+
+  // Deepened stuck-prompt rescue lines, patterned "IF THEY SAY X: prompt / prompt".
+  const stuckItems = roundData?.stuckPrompts?.length
+    ? roundData.stuckPrompts.map(sp => `<li><strong>${sp.when}:</strong> ${sp.lines.map(l => `“${l}”`).join(" / ")}</li>`)
+    : mergedIf.map(x => `<li>${x}</li>`);
+  const stuckCard = stuckItems.length ? `<details class="fac-collapse fac-stuck"><summary>IF STUDENTS ARE STUCK — RESCUE PROMPTS</summary><div class="fac-collapse-body"><ul>${stuckItems.join("")}</ul></div></details>` : "";
+
+  // Suggested student answers — always framed as possibilities, never an answer key.
+  const suggestedCard = roundData?.suggestedAnswers?.length
+    ? `<details class="fac-collapse fac-suggested"><summary>SUGGESTED STUDENT ANSWERS</summary><div class="fac-collapse-body"><p>Students might say:</p><ul>${roundData.suggestedAnswers.map(a => `<li>${a}</li>`).join("")}</ul><p class="fac-suggested-close">${SUGGESTED_ANSWERS_CLOSE}</p></div></details>`
+    : "";
+
+  const listenCard = roundData?.listenFor?.length
+    ? `<details class="fac-collapse fac-listen"><summary>WHAT TO LISTEN FOR</summary><div class="fac-collapse-body"><ul>${roundData.listenFor.map(x => `<li>${x}</li>`).join("")}</ul></div></details>`
+    : "";
+
+  const misconceptionCard = roundData?.misconception
+    ? `<details class="fac-collapse fac-misconception"><summary>MISCONCEPTION TO CORRECT</summary><div class="fac-collapse-body"><p><strong>IF STUDENTS SAY:</strong> “${roundData.misconception.claim}”</p><p><strong>RESPONSE:</strong> ${roundData.misconception.response}</p></div></details>`
+    : "";
+
+  const selfCareCard = roundData?.selfCareLink
+    ? `<details class="fac-collapse fac-selfcare"><summary>SELF-CARE LINK</summary><div class="fac-collapse-body"><p>${roundData.selfCareLink}</p></div></details>`
+    : "";
+
+  const depthCard = details("DEPTH / NUANCE — WHY THIS WORKS", mergedDepth);
+
+  return `<div class="fac-card fac-section-head"><div class="fac-card-label">RIGHT NOW · ${round} · ${phase}</div><p class="fac-right-now">${rightNowForView(v)}</p><p class="fac-purpose">${g.purpose}</p></div>
  <div class="fac-card fac-student-mirror"><div class="fac-card-label">STUDENTS CURRENTLY SEE — MAIN SCREEN COPY</div><div class="fac-mirror-note">Round, time and Energy are already shown in the facilitator status bar above.</div><div class="fac-mirror-copy">${exactStudentCopy()}</div></div>
- <div class="fac-card fac-say"><div class="fac-card-label">1 · SAY / READ</div><p>${say || "Use the exact student-screen copy above."}</p></div>
+ <div class="fac-card fac-say"><div class="fac-card-label">SAY / READ</div><p>${say || "Use the exact student-screen copy above."}</p></div>
  ${askCard}
- <div class="fac-card fac-donow"><div class="fac-card-label">3 · DO NOW</div><p>${doNow}</p>${extra}</div>
- <div class="fac-card fac-studentdo"><div class="fac-card-label">4 · STUDENTS DO / WATCH FOR</div><p>${studentsDo}</p></div>
+ <div class="fac-card fac-studentdo"><div class="fac-card-label">STUDENTS DO</div><p>${studentsDo}</p></div>
+ <div class="fac-card fac-donow"><div class="fac-card-label">DO NOW</div><p>${doNow}</p>${extra}</div>
  ${controls ? `<div class="fac-card fac-live-controls"><div class="fac-card-label">LIVE CONTROLS — USE THESE NOW</div>${controls}</div>` : ""}
  ${discussion.length ? `<div class="fac-card fac-discussion"><div class="fac-card-label">DISCUSSION GUIDE — PICK 1–3</div><ul>${discussion.map(q => `<li>${q}</li>`).join("")}</ul></div>` : ""}
- ${details("IF NEEDED — RESCUE PROMPTS", mergedIf)}${details("DEPTH / NUANCE — WHY THIS WORKS", mergedDepth)}${(dontSay || g.dontSay) ? `<div class="fac-card fac-dont"><div class="fac-card-label">DON’T SAY / DON’T TEACH</div><p>${dontSay || g.dontSay}</p></div>` : ""}
+ ${stuckCard}${suggestedCard}${listenCard}${misconceptionCard}${selfCareCard}${depthCard}${(dontSay || g.dontSay) ? `<div class="fac-card fac-dont"><div class="fac-card-label">DON’T SAY / DON’T TEACH</div><p>${dontSay || g.dontSay}</p></div>` : ""}
  <div class="fac-card fac-changes"><div class="fac-card-label">WHAT THIS CHANGES</div><p>${changes}</p></div>
  ${upcoming ? `<div class="fac-card fac-next-up"><div class="fac-card-label">NEXT UP — BEFORE YOU MOVE ON</div><p>${upcoming}</p></div>` : ""}
  <div class="fac-nav"><button class="btn" data-fac-action="_back" ${canBack ? "" : "disabled"}>← Back</button><button class="btn" data-fac-action="_forward" ${canForward ? "" : "disabled"}>Forward →</button>${next ? `<button class="btn primary" data-fac-action="${next.action}">${next.label}</button>` : ""}</div>`;
@@ -308,7 +391,10 @@ function renderR5WorkResult(gs) {
 function renderLife(slot, events, next) {
   const gs = getGameState(), rs = getRunState(), id = rs[slot], e = events.find(x => x.id === id), applied = gs.lifeEffectsApplied?.[slot];
   const controls = !applied && e ? `<button class="btn primary" data-fac-action="apply:${slot}">Reveal / apply this consequence →</button>` : "";
-  return shell({ round: slot === "life1" ? "Round 1" : slot === "life2" ? "Round 5" : "Round 7", phase: "Life Happens", say: e ? `${e.title}. ${e.text}` : "Life happens.", ask: "Could Jordan control this event? What part of the plan now has to change?", doNow: applied ? "The event is already applied. Briefly name the changed state before continuing." : "Read the event exactly as shown. Take one quick response about what changes, then use the LIVE CONTROL directly below this guide to apply it once. Do not reveal a hidden Energy number before the student screen does.", studentsDo: "Adapt the plan to an event Jordan did not choose.", controls, changes: e?.why || "The day changes.", next: applied ? next : null });
+  const say = !applied
+    ? `Jordan made a plan. Now something happens Jordan did not choose.${e ? ` ${e.title}. ${e.text}` : ""}`
+    : (e ? `${e.title}. ${e.text}` : "Life happens.");
+  return shell({ round: slot === "life1" ? "Round 1" : slot === "life2" ? "Round 5" : "Round 7", phase: "Life Happens", say, ask: "What just changed? Does the original plan still work?", doNow: applied ? "The event is already applied. Briefly name the changed state before continuing." : "Read the event exactly as shown. Take one quick response about what changes, then use the LIVE CONTROL directly below this guide to apply it once. Do not reveal a hidden Energy number before the student screen does.", studentsDo: "Adapt the plan to an event Jordan did not choose.", controls, changes: e?.why || "The day changes.", next: applied ? next : null });
 }
 
 function renderBasketball(gs) {

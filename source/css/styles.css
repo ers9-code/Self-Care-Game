@@ -908,6 +908,53 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .fac-nav .btn:disabled{opacity:.35;}
 @media(max-width:1050px){.fac-lock-grid{grid-template-columns:1fr;}}
 
+/* ── GAME MASTER CONSOLE hierarchy additions (presentation/facilitation pass) ── */
+.fac-section-head{display:flex;flex-direction:column;gap:4px;}
+.fac-right-now{font-size:16px!important;font-weight:800!important;color:#ffffff!important;line-height:1.3!important;}
+.fac-purpose{font-size:12px!important;color:#cbd5e1!important;line-height:1.35!important;}
+.fac-stuck summary,.fac-suggested summary,.fac-listen summary,.fac-misconception summary,.fac-selfcare summary{font-weight:800;}
+.fac-stuck .fac-collapse-body li{margin:8px 0;}
+.fac-stuck .fac-collapse-body li strong{color:#5b21b6;}
+.fac-suggested .fac-collapse-body p{margin:2px 0 6px;font-weight:700;color:#334155;}
+.fac-suggested-close{margin-top:8px!important;font-style:italic;color:#475569!important;font-weight:600!important;border-top:1px solid #e2e8f0;padding-top:8px;}
+.fac-misconception .fac-collapse-body p{margin:4px 0;}
+.fac-misconception .fac-collapse-body p strong{color:#b45309;}
+.fac-selfcare summary{color:#0f766e;}
+.fac-selfcare .fac-collapse-body{background:#f0fdfa;color:#134e4a;font-weight:600;}
+.fac-collapse.fac-suggested,.fac-collapse.fac-stuck,.fac-collapse.fac-listen,.fac-collapse.fac-misconception,.fac-collapse.fac-selfcare{border-color:#cbd5e1;}
+
+/* ── Student-side ownership / narrative additions ─────────────────────── */
+.proj-ownership{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#0f766e;background:#ecfdf5;border:1px solid #a7f3d0;display:inline-block;padding:5px 11px;border-radius:999px;margin-bottom:10px;flex-shrink:0;}
+.proj-anticipation{margin:8px 0 12px;padding:11px 15px;background:#fff7ed;border-left:3px solid #f59e0b;border-radius:6px;font-size:15px;font-weight:700;color:#78350f;flex-shrink:0;}
+.proj-anticipation-dark{background:rgba(124,58,237,.14);border-left-color:#7c3aed;color:#4c1d95;margin-bottom:12px;}
+.proj-following{margin-top:14px;padding:12px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;flex-shrink:0;}
+.proj-following strong{display:block;font-size:11px;letter-spacing:.08em;color:#9a3412;margin-bottom:8px;}
+.proj-following-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.proj-following-chips span{background:#ffffff;border:1px solid #fdba74;color:#7c2d12;font-size:12px;font-weight:750;border-radius:999px;padding:5px 10px;}
+.proj-following-chips span.clear{background:#ecfdf5;border-color:#a7f3d0;color:#065f46;}
+.proj-investigate{grid-template-columns:repeat(2,1fr);}
+.proj-tells,.proj-unknown{margin-top:10px;padding:8px 10px;border-radius:8px;font-size:12.5px;line-height:1.3;}
+.proj-tells{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a;}
+.proj-tells strong,.proj-unknown strong{display:block;font-size:10px;letter-spacing:.07em;margin-bottom:3px;}
+.proj-unknown{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;}
+.proj-spend-list{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-bottom:12px;flex-shrink:0;}
+.proj-spend-list strong{width:100%;font-size:11px;letter-spacing:.08em;color:#475569;margin-bottom:2px;}
+.spend-check{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:750;}
+.spend-cross{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:750;}
+.timeline-tension{font-size:13px;font-weight:800;letter-spacing:.06em;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:6px 10px;margin-bottom:8px;display:inline-block;}
+.proj-stop{font-size:22px!important;}
+.receipt-summary{margin-bottom:10px;flex-shrink:0;}
+.receipt-summary p{font-size:14px;line-height:1.4;color:#334155;margin-bottom:4px;}
+@media(max-height:720px){
+  .proj-following{padding:9px 11px;margin-top:9px;}
+  .proj-following-chips span{font-size:11px;padding:4px 8px;}
+  .proj-tells,.proj-unknown{font-size:11px;padding:6px 8px;margin-top:7px;}
+  .proj-anticipation{font-size:13px;padding:8px 12px;margin:6px 0 9px;}
+  .receipt-summary p{font-size:12px;}
+  .proj-spend-list{margin-bottom:8px;}
+  .fac-right-now{font-size:14px!important;}
+}
+
 /* ── Facilitator mirror / class-wording — final layout pass ─────────────── */
 .fac-mirror-note{font-size:11px;line-height:1.3;color:#64748b;margin:0 0 7px;font-weight:600;}
 .fac-class-wording{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;padding-top:8px;border-top:1px solid #dbe4ee;}

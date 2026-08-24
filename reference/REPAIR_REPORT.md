@@ -10,7 +10,7 @@ Real, currently-live defects found by full logic trace + confirmed live in-brows
 
 | # | Defect | Class | Severity |
 |---|---|---|---|
-| 1 | Round 5 pre-work-gap "Assessment" action set `assessmentRemaining -= 20` but never set `assessmentWorkedTonight = true`. Any run where assessment work happened *only* during the Round 5 gap (never in Round 6 or Round 7) made Life Happens 3's "Task quicker than expected" event **permanently unreachable**, even though the class had genuinely done assessment work that evening. | Unreachable Life-Happens branch | **P0** |
+| 1 | *(Corrected on final review — see §6b.)* An earlier pass of this repair had `r5Gap:assessment` (Round 5's **pre-work** gap, ~3:12 PM) also set `assessmentWorkedTonight = true`, on the belief that "Task quicker than expected" was otherwise unreachable. It wasn't: Round 6's evening `assessment` tile and Round 7's `assess_finish`/`assess_20` already set that flag correctly, and the Master Spec ties the event specifically to work "completed/scheduled **tonight**" — Round 5 is same-afternoon, pre-work, not evening. The R5 flag-set was an over-broad eligibility bug in the wrong direction and has been reverted. | Over-broad Life-Happens eligibility | **P0** |
 | 2 | Facilitator screen hierarchy rendered `STUDENTS DO` **after** `LIVE CONTROLS` and the `DISCUSSION GUIDE`, not immediately after `DO NOW`. This is exactly the "facilitator information-order problem" defect class named in the brief: a facilitator reading top-to-bottom hit the clickable controls before being told what students are physically doing. | Facilitator info-order | **P1** |
 | 3 | `styles.css` loaded Inter/Montserrat from `fonts.googleapis.com` at parse time. A classroom cannot be assumed to have working internet, and the standalone build's own stated goal is zero external dependencies (already true for images) — a network font request is the same class of fragility. | Robustness / offline guarantee | **P1** |
 | 4 | Stylesheet carried three generations of the same override (`.fac-mirror-copy` `max-height`/`overflow` set, then media-query variants, then a final `!important` block that neutralised all of them) — functionally correct in cascade order but a maintenance trap: editing the "wrong" one silently does nothing. | Maintainability | P2 |
@@ -21,7 +21,7 @@ Everything else audited (round sequencing, Energy timing, Round 3 first-check/fo
 
 ## 2. What was fixed
 
-- **Defect 1** — `source/js/engine.js`, the `r5Gap:` action branch now sets `d.assessmentWorkedTonight = true` on `id === "assessment"`, mirroring what Round 6's `applyEveningAction` and Round 7's `assess_finish`/`assess_20` already did correctly. Verified live: a run doing assessment only in the Round 5 gap now makes "Task quicker than expected" reachable.
+- **Defect 1** — `source/js/engine.js`'s `r5Gap:` action branch no longer sets `assessmentWorkedTonight`; only Round 6's `applyEveningAction` (evening `assessment` tile) and Round 7's `assess_finish`/`assess_20` set it, matching the Master Spec's "tonight" wording. Verified live (see §6b): a run doing all assessment work exclusively in the Round 5 gap reaches Round 7 with `assessmentWorkedTonight === false` and "Task quicker than expected" correctly ineligible; a run doing the same work via the Round 6 evening tile correctly makes it eligible.
 - **Defect 2** — `source/js/render-facilitator.js`'s `shell()` now renders `STUDENTS DO` immediately after `DO NOW` and before `LIVE CONTROLS`, matching the required hierarchy: STUDENTS CURRENTLY SEE → SAY → ASK → DO NOW → STUDENTS DO → LIVE CONTROLS → DISCUSSION GUIDE → IF NEEDED/DEPTH/DON'T SAY → WHAT THIS CHANGES → NEXT UP.
 - **Defect 3** — Google Fonts `@import` removed from `source/css/styles.css`; `'Inter'`/`'Montserrat'` replaced with local system-font stacks (`-apple-system, "Segoe UI", Roboto, Helvetica, Arial` and a semibold-leaning variant for display text). Confirmed zero network requests in the built standalone (`grep -c fonts.googleapis dist/...html` → 0).
 - **Defects 4–6** — folded into a single clean rule during the modular rewrite rather than three layered overrides; removed the dead `"now"` enum value; consolidated to one `window._fac.reset` entry point (topbar Reset button calls it directly).
@@ -93,13 +93,72 @@ All of the following were driven live via Playwright against `dist/Energy_Bar_Ch
 
 ## 5. Energy-path audit
 
-Traced multiple complete paths through `source/js/content.js`/`engine.js` against `MASTER_BUILD_SPEC_LOCKED.md`:
+Both paths below were driven end-to-end through the actual built `dist/Energy_Bar_Challenge_STANDALONE.html` via real `data-fac-action` clicks (Playwright), with the two Life Happens random draws pre-seeded (`rs.life1`/`rs.life2`/`rs.life3`, the same field `getOrAssignLifeEvent` reads and only fills if still `null` — a legitimate way to force a specific eligible outcome, not a change to any game rule) so the numbers are exactly reproducible rather than one lucky roll. The in-browser final state matched this hand arithmetic exactly on every run.
 
-- **High-Energy path is possible**: BASICS FIRST (+2) → lift (+3) → deliberate attention plan (+2) → Task Sheet direct (+2) → TEN MINUTES FIRST (+2) → NO/60min gap with reset used (+2), no hunger penalty, NO/-6 shift → training_moved (0) → ATTEND (+1) → dinner+reset in the evening (+5) → light R7 load → CHECK IF IT CAN WAIT (+1) can plausibly finish well above 90, while still carrying real Tomorrow Load if assessment was deferred — high Energy is never the only number shown; the receipt always pairs it with Tomorrow Load, basketball, friend and food status.
-- **Low-Energy path is possible**: TRY TO FIT IT ALL (-1) → forgot laptop (-3) → GO NOW at lunch (-1, missed lunch) → YES/3:45 (-8 shift, +45 paid, plus -3 hunger penalty since food was never obtained) → shift_late (-3) → SKIP basketball (0) → heavy assessment grinding (-2 × several) → CALL at Round 8 (-2) — a low-Energy day that completed significant real responsibilities and paid work, never framed as a worse day.
+**Highest-plausible path** — every choice picked for maximum Energy at that decision point (deferring the assessment to tomorrow rather than paying to clear it, since deferral costs 0 Energy):
+
+| Step | Delta | Running total |
+|---|---|---|
+| Start | — | 100 |
+| R1 auto (poor sleep) | −12 | 88 |
+| R1 choice: BASICS FIRST | +2 | 90 |
+| Life 1: lift offered | +3 | 93 |
+| R2 auto (attention pressure) | −4 | 89 |
+| R2: deliberate attention plan locked | +2 | 91 |
+| R3 auto (deadline surprise) | −8 | 83 |
+| R3: TASK SHEET (direct) | +2 | 85 |
+| R4 auto (competing needs) | −4 | 81 |
+| R4: TEN MINUTES FIRST | +2 | 83 |
+| R5 gap: PROPER RESET | +2 | 85 |
+| R5 work shift: NO — 4:30 (−6, no hunger penalty) | −6 | 79 |
+| Life 2: training moved | 0 | 79 |
+| R6 basketball: ATTEND | +1 | 80 |
+| R6 evening: DINNER | +3 | 83 |
+| R6 evening: PROPER RESET | +2 | 85 |
+| R7: assessment → Move to Tomorrow | 0 | 85 |
+| R7: Tomorrow Basics → Morning | 0 | 85 |
+| Life 3: extra class time tomorrow *(only eligible event on this path — assessmentTomorrow=60, assessmentWorkedTonight=false, groupChatStatus muted)* | +1 | 86 |
+| R8: LEAVE UNTIL MORNING | +1 | **87** |
+
+**Final: Energy 87 / 100. Bedtime 10:30 PM. Tomorrow Load 70 min** (60 min assessment carried + 10 for "Morning" Tomorrow Basics). Confirms high Energy coexisting with substantial Tomorrow Load — the 87 was never presented as a pure win; every remaining unit of Energy was bought by deferring something. (The previous draft of this report claimed this path finishes "well above 90" — that was a hand-wave, not a calculation, and was wrong; 87 is the actual ceiling found by optimising every single decision point, verified in-browser.)
+
+**Deliberately lower path** — every choice picked for minimum Energy, while completing real responsibilities (full assessment finished, Tomorrow Basics done, friend and phone resolved) rather than just failing every choice:
+
+| Step | Delta | Running total |
+|---|---|---|
+| Start | — | 100 |
+| R1 auto | −12 | 88 |
+| R1 choice: TRY TO FIT IT ALL | −1 | 87 |
+| Life 1: forgot laptop | −3 | 84 |
+| R2 auto | −4 | 80 |
+| R2: deliberate attention plan locked | +2 | 82 |
+| R3 auto | −8 | 74 |
+| R3: PEER + required follow-up | +1 | 75 |
+| R4 auto | −4 | 71 |
+| R4: GO NOW (lunch missed) | −1 | 70 |
+| R5 gap: GET ORGANISED | −1 | 69 |
+| R5 work shift: YES — 3:45 (−8) + still-hungry penalty | −8, −3 | 58 |
+| Life 2: shift runs late | −3 | 55 |
+| R6 basketball: SKIP | 0 | 55 |
+| R6 evening: ASSESSMENT ×2 | −2, −2 | 51 |
+| R6 evening: TOMORROW BASICS | −1 | 50 |
+| R7: assessment (final 20 min) → Finish Tonight | −2 | 48 |
+| Life 3: group chat lights up *(forced to the negative eligible branch; task_quicker was also eligible here — see below)* | −2 | 46 |
+| R7: parked phone → Check | −1 | 45 |
+| R8: CALL | −2 | **43** |
+
+**Final: Energy 43 / 100. Bedtime 10:42 PM. Tomorrow Load 0 min** (assessment fully done tonight, Tomorrow Basics done, phone checked) — proof that low Energy coexists with *more* responsibilities completed, never framed as a worse or failed day. An unforced live run of this same path (genuine random draws, not seeded) landed at Energy 53 because both Life Happens draws happened to land on their positive branch instead (lift +3 instead of laptop −3, task-quicker +2 instead of group-chat −2) — exactly the +10 the arithmetic predicts, confirming the model.
+
 - **No Energy effect fires twice**: every mutating action is applied inside exactly one `commitAction` call gated by a state flag where repeatable-but-once actions exist (`workEnergyApplied`, `workResetUsed`, `eveningResetUsed`, `organisedUsed`, `lifeEffectsApplied.{life1,life2,life3}`); `commitAction`'s no-op detection additionally prevents a click from creating a duplicate history entry when a guard silently blocks the mutation.
 - **No hidden Energy**: every Energy-changing action has an accompanying `why`/`tradeoff` string surfaced on both screens; facilitator `changes` copy always states the resulting number.
 - **Language audit**: no instance of "best/healthy/correct/winning/bad" choice-framing outside of explicit "don't say this" facilitator warnings (which exist specifically to ban the phrase from the facilitator's own mouth).
+
+## 6b. Final-review correction log
+
+Two points raised on final review, both independently re-verified against `MASTER_BUILD_SPEC_LOCKED.md` and the actual built standalone before changing anything:
+
+1. **Life Happens 3 eligibility.** Re-read of the spec's "only if assessment work was completed/scheduled **tonight**" against Round 5's own timing (3:12 PM, before the work shift, same afternoon) confirmed Round 5 gap work should not count. Reverted `engine.js`'s `r5Gap:assessment` handler to stop setting `assessmentWorkedTonight`. Live-verified in-browser: a run that clears all 60 minutes of assessment purely in the Round 5 gap now reaches Round 7 with `assessmentWorkedTonight=false` and all three Life Happens 3 events report `eligible:false` (event is skipped); a run that does one 20-minute block via Round 6's evening `assessment` tile instead correctly reaches `assessmentWorkedTonight=true`.
+2. **Energy-path numbers.** The prior report's "well above 90" was an unverified estimate. Recalculated both a maximal and minimal complete path by hand (arithmetic above) and confirmed both numbers exactly by driving the real built standalone through Playwright with the two random Life Happens draws pinned to specific outcomes — every intermediate running total in the tables above matches what `getGameState().energy` reported after the corresponding click, at every step, not just at the end.
 
 ## 6. Flagged assumption (Master Spec is silent, most reasonable resolution taken)
 

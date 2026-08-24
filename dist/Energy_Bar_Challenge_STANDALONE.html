@@ -1910,7 +1910,7 @@ function performAction(act) {
         if (id === "organise" && d.organisedUsed) return;
         d.workGapRemaining -= a.duration;
         d.energy = clampEnergy(d.energy + a.impact);
-        if (id === "assessment") { d.assessmentRemaining -= 20; d.assessmentWorkedTonight = true; } // FIX: R5 assessment work now correctly makes "task quicker than expected" reachable in Life Happens 3
+        if (id === "assessment") d.assessmentRemaining -= 20;
         if (id === "friend") d.friendStatus = "resolved";
         if (id === "food") { d.currentHunger = false; d.lunchHistory = "late_food_obtained"; }
         if (id === "reset") d.workResetUsed = true;

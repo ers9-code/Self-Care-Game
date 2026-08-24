@@ -1471,7 +1471,7 @@ const ROUND2 = {
   attentionManagementWhy: "The +2 comes from committing to a deliberate attention plan — not from choosing the ‘right’ app.",
   buildStateMutation(assignments, checkedNowItem) {
     return d => {
-      d.energy = clampEnergy(d.energy + 2);
+      d.energy = clampEnergy(d.energy + ROUND2.attentionManagementGain);
       d.friendKnownBeforeLunch = checkedNowItem === "item_dm";
       d.friendDMStatus = d.friendKnownBeforeLunch ? "checked" : "deferred";
       const normalize = (item) => {
@@ -2720,7 +2720,7 @@ function renderController(gs) {
     const friendLine = gs.friendKnownBeforeLunch ? `Jordan checked the friend DM and now knows: “${ROUND2.friendDMReveal}”` : `Jordan did not check the friend DM, so the message is still unknown before lunch.`;
     const groupLine = gs.groupChatStatus === "muted" ? "The group chat was muted, so it cannot return later." : gs.groupChatStatus === "later" ? "The group chat was parked for later, so it can still return." : `The group chat status is ${gs.groupChatStatus || "not set"}.`;
     const videoLine = gs.videosStatus === "muted" ? "The videos were muted, so they cannot return later." : gs.videosStatus === "later" ? "The videos were parked for later, so they can still return." : `The videos status is ${gs.videosStatus || "not set"}.`;
-    return shell({ round: "Round 2", phase: "Result", say: `The +2 is for committing to a deliberate attention plan — not for choosing a particular app. ${friendLine} ${groupLine} ${videoLine}`, ask: "What did Jordan choose to know now, what was deliberately left for later, and what can no longer interrupt the day?", doNow: "Read the three consequences in order: friend information, group chat, videos. Make the distinction between LATER and MUTE explicit before moving on.", studentsDo: "Notice that the sort changed what information Jordan has now and what can still return later.", changes: `Friend known before lunch: ${gs.friendKnownBeforeLunch ? "yes" : "no"}. Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}. Energy: +2 for the deliberate plan itself.`, next: { label: "Start Round 3 →", action: "startR3" } });
+    return shell({ round: "Round 2", phase: "Result", say: `${ROUND2.attentionManagementWhy} ${friendLine} ${groupLine} ${videoLine}`, ask: "What did Jordan choose to know now, what was deliberately left for later, and what can no longer interrupt the day?", doNow: "Read the three consequences in order: friend information, group chat, videos. Make the distinction between LATER and MUTE explicit before moving on.", studentsDo: "Notice that the sort changed what information Jordan has now and what can still return later.", changes: `Friend known before lunch: ${gs.friendKnownBeforeLunch ? "yes" : "no"}. Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}. Energy: ${ROUND2.attentionManagementGain > 0 ? "+" : ""}${ROUND2.attentionManagementGain} for the deliberate plan itself.`, next: { label: "Start Round 3 →", action: "startR3" } });
   }
 
   if (v === "r3_story") return roundStory(ROUND3, gs, { label: "Investigate →", action: "r3Investigate" }, "Next is an information investigation, not a ‘best answer’ vote. The class chooses which source Jordan checks first.");

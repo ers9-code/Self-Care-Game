@@ -129,7 +129,7 @@ const ROUND2 = {
   attentionManagementWhy: "The +2 comes from committing to a deliberate attention plan — not from choosing the ‘right’ app.",
   buildStateMutation(assignments, checkedNowItem) {
     return d => {
-      d.energy = clampEnergy(d.energy + 2);
+      d.energy = clampEnergy(d.energy + ROUND2.attentionManagementGain);
       d.friendKnownBeforeLunch = checkedNowItem === "item_dm";
       d.friendDMStatus = d.friendKnownBeforeLunch ? "checked" : "deferred";
       const normalize = (item) => {

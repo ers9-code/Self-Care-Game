@@ -587,8 +587,15 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .proj-result-impact.gain { color: #34d399; }
 .proj-result-impact.take { color: #f87171; }
 .proj-result-impact.neutral { color: var(--proj-muted); }
-.proj-result-choice { font-size: 17px; font-weight: 600; margin-bottom: 10px; flex-shrink: 0; }
+.proj-result-choice { font-family: "Segoe UI Semibold", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 12px; flex-shrink: 0; line-height: 1.2; }
 .proj-result-why { font-size: 15px; line-height: 1.6; color: #94a3b8; flex: 1; overflow: hidden; }
+/* Energy is a consequence of the story, not the headline: small, last in reading order, de-emphasised relative to the decision/story content above it. */
+.proj-energy-line { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--proj-border); flex-shrink: 0; }
+.proj-energy-line span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--proj-muted); }
+.proj-energy-line strong { font-family: "Segoe UI Semibold", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 800; }
+.proj-energy-line strong.gain { color: #34d399; }
+.proj-energy-line strong.take { color: #f87171; }
+.proj-energy-line strong.neutral { color: var(--proj-muted); }
 
 /* Dots progress */
 .proj-dots { display: flex; gap: 6px; align-items: center; }
@@ -735,6 +742,7 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .reality-projector>div{background:#ffffff;border:1px solid #d8e1ec;color:#172033}.reality-projector span{color:#64748b}
 .receipt-grid>div{background:#ffffff;border:1px solid #d8e1ec}.receipt-grid span{color:#64748b}.receipt-projector h2,.receipt-projector h3,.receipt-questions{color:#172033}.receipt-projector h3{border-top-color:#cbd5e1}
 .proj-result-impact.neutral{color:#64748b}.proj-result-choice{color:#172033}.proj-result-why{color:#475569;font-size:18px}
+.proj-energy-line{border-top-color:#cbd5e1}.proj-energy-line span{color:#64748b}.proj-energy-line strong.neutral{color:#64748b}
 .dialogue-bubble{background:#ffffff;border:1px solid #cbd5e1;box-shadow:0 5px 18px rgba(15,23,42,.06)}
 .projector-countdown{color:#b45309;background:#fffbeb;border:2px solid #fcd34d;border-radius:14px;padding:6px 14px}
 .vote-count{color:#0369a1}
@@ -823,6 +831,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
   .receipt-questions p{font-size:14px;}
   .receipt-projector h3{font-size:18px;padding-top:7px;}
   .receipt-closing-copy{font-size:13px;line-height:1.35;margin-top:5px;}
+  .proj-result-choice{font-size:22px;margin-bottom:8px;}
+  .proj-energy-line{margin-top:8px;padding-top:7px;}
+  .proj-energy-line strong{font-size:17px;}
 }
 /* At narrower classroom laptops, keep the facilitator preview useful but protect the script pane. */
 @media(max-width:1280px){.fac-preview{width:500px;min-width:500px;}}
@@ -1355,38 +1366,43 @@ const ROUND_VISUALS = {
  * out of sync with the line itself. Cross-round engine logic (timeline,
  * gap-spending availability, round transitions) lives in engine.js.
  *
- * PRESENTATION LAYER (added on top of the locked mechanics, this pass):
- * every round also carries facilitator-only teaching-support content —
- * stuckPrompts / suggestedAnswers / listenFor / misconception /
- * selfCareLink — consumed by render-facilitator.js's GAME MASTER
- * console hierarchy. None of this changes what a choice does; it is
- * read by the facilitator, never shown on the student projector.
+ * PRESENTATION LAYER: every round carries round-level facilitator
+ * teaching-support content (stuckPrompts / suggestedAnswers / listenFor /
+ * misconception / selfCareLink) as a fallback, plus a `moments` object
+ * keyed by viewDescriptor (exact match, or normalised by stripping a
+ * trailing ":suffix") holding only the fields that specific screen needs
+ * to override. render-facilitator.js's resolveGuidance() resolves each
+ * of the eight teaching-support fields independently — moment, then
+ * round, then generic default — so a moment overriding one field still
+ * inherits the rest from its round. None of this changes what a choice
+ * does; it is read by the facilitator, never shown on the student
+ * projector.
  * ===================================================================== */
 
-const SUGGESTED_ANSWERS_CLOSE = "All of these can be reasonable. The point is to notice what each one protects and what it pushes later.";
+const SUGGESTED_ANSWERS_CLOSE = "All reasonable. Notice what each one is choosing to protect — and what it's choosing to leave for later.";
 
 const OPENING = {
   brainstorm: {
     heading: "What is self-care?",
-    prompt: "Before we start, when you hear the words self-care, what do you think it actually means?",
-    sub: "Quick ideas only. No personal examples are needed — we’ll come back to this at the end."
+    prompt: "Before we start — when you hear the words self-care, what actually comes to mind?",
+    sub: "Quick ideas only. No personal examples needed — we’ll come back to this at the end."
   },
   meetJordan: {
     heading: "Meet Jordan",
     body: [
       "Jordan is in Year 10.",
-      "There is a school assessment in progress. Jordan thinks there is still time.",
-      "Jordan works from 4:30–6:00 today, and extra hours would be useful.",
-      "Basketball is tonight — something Jordan actually wants to do."
+      "There’s a school assessment due soon. Jordan thinks there’s more time than there is.",
+      "Jordan works 4:30–6:00 today, and extra hours would genuinely help.",
+      "Basketball is tonight — something Jordan actually wants."
     ],
     note: "Your job: get Jordan through one ordinary day. Not perfectly. Deliberately."
   },
   energyBar: {
     heading: "Jordan starts at 100 energy",
     body: [
-      "The Energy Bar shows the immediate effect of what is happening. It is not a wellbeing score and it is not grading decisions right or wrong.",
-      "A useful decision can still take energy. Something easier right now can create another problem later.",
-      "Sometimes Jordan gets a choice. Sometimes life just happens. There can be more than one reasonable answer."
+      "The Energy Bar shows the immediate effect of what’s happening. It isn’t a wellbeing score, and it isn’t grading anyone’s decisions right or wrong.",
+      "A useful decision can still cost energy. An easy one right now can create a bigger problem later.",
+      "Sometimes Jordan gets a choice. Sometimes life just happens. More than one answer can be reasonable."
     ],
     note: "You’re controlling Jordan today. Nobody needs to tell us anything personal."
   }
@@ -1395,27 +1411,27 @@ const OPENING = {
 const ROUND1 = {
   round: 1, time: "7:10 AM", part: "Morning", title: "ALREADY BEHIND",
   story: [
-    "Jordan planned to be asleep by 10:30, but messaging and videos pushed it past midnight.",
-    "The alarm went at 6:45. Jordan snoozed twice.",
-    "It is now 7:10. Jordan has not eaten and has about 35 minutes to leave."
+    "Jordan meant to be asleep by 10:30. Messages and videos pushed that past midnight.",
+    "The alarm went at 6:45. Jordan snoozed it twice.",
+    "It’s 7:10 now. No breakfast yet — about 35 minutes before Jordan has to leave."
   ],
-  autoEnergy: -12, autoWhy: "Less sleep and rushing have already reduced Jordan’s usable capacity.",
-  preTalk: ["What matters most in the next 35 minutes?", "What can reasonably be left out today?"],
-  question: "What matters most in the next 35 minutes?", voteTimerSeconds: 15,
-  voteAnticipation: "YOU’RE ABOUT TO SEE FOUR PLANS. 15 SECONDS. WHEN TIME STOPS, HOLD UP 1, 2, 3 OR 4 FINGERS.",
+  autoEnergy: -12, autoWhy: "A short night and a late start have already cost Jordan capacity, before anyone’s chosen anything.",
+  preTalk: ["What matters enough to make the cut this morning?", "What would you be willing to leave out?"],
+  question: "What matters enough to make the cut this morning?", voteTimerSeconds: 15,
+  voteAnticipation: "Four plans. I’ll read them all first. Then you get 15 seconds — when time stops, hold up 1, 2, 3 or 4 fingers for your choice.",
   choices: [
     { id: "1", short: "TEN MORE MINUTES", label: "Sleep 10 more minutes, get dressed, grab food to take.", impact: 1,
-      why: "A little more rest while still covering the basics.",
-      tradeoff: "The trade-off is a tighter departure window and less room if anything else goes wrong." },
+      why: "A little more rest, and food still makes it out the door.",
+      tradeoff: "The window to actually leave gets tighter — almost no room left if anything slows Jordan down." },
     { id: "2", short: "BASICS FIRST", label: "Eat something quick, get dressed, leave non-essential things.", impact: 2,
-      why: "Jordan simplifies the morning and protects two basics: food and getting out the door.",
-      tradeoff: "The trade-off is that non-essential things, including messages or a shower, may need to wait." },
+      why: "Jordan simplifies the morning down to what actually matters: food, and getting out the door.",
+      tradeoff: "Everything else — messages, a shower, anything extra — waits until later." },
     { id: "3", short: "SHOWER + TAKE FOOD", label: "Quick shower, get dressed, take food for later.", impact: 1,
-      why: "Jordan chooses feeling awake and clean while still taking food.",
-      tradeoff: "The trade-off is that the food is delayed and there is still very little spare time." },
+      why: "Jordan chooses feeling awake and put-together, and still grabs food for later.",
+      tradeoff: "Breakfast gets delayed, and the morning still has almost no spare time in it." },
     { id: "4", short: "TRY TO FIT IT ALL", label: "Shower, food, packing and messages.", impact: -1,
-      why: "Each task is reasonable, but fitting everything into a rushed morning creates more pressure.",
-      tradeoff: "Protects doing everything Jordan wants to do. The trade-off is almost no buffer, more rushing and more pressure if one task takes longer than expected." }
+      why: "Every one of these is reasonable on its own.",
+      tradeoff: "All four in 35 minutes isn’t really a plan — it’s a bet that nothing else goes wrong." }
   ],
   stateMutations: Object.fromEntries(["1", "2", "3", "4"].map(id => [id, (d) => {
     const c = ROUND1.choices.find(x => x.id === id);
@@ -1424,12 +1440,12 @@ const ROUND1 = {
     d.currentHunger = false;
   }])),
   lifeEvents: [
-    { id: "r1_lift", title: "Offered a lift", text: "Jordan was planning to catch the bus. Someone at home is heading that way and offers Jordan a lift instead.", impact: 3, why: "One practical demand disappears." },
-    { id: "r1_laptop", title: "Forgot the laptop", text: "At the door, Jordan realises the school laptop is still in the bedroom.", impact: -3, why: "A small mistake adds another task and more rushing." },
-    { id: "r1_snack", title: "Found a snack", text: "Jordan finds an easy snack to throw in the bag for later.", impact: 1, why: "A small future problem is removed." }
+    { id: "r1_lift", title: "Offered a lift", text: "Jordan was going to catch the bus. Someone at home is driving that way and offers a lift instead.", impact: 3, why: "One whole problem just disappears." },
+    { id: "r1_laptop", title: "Forgot the laptop", text: "At the door, Jordan realises the school laptop is still on the bed.", impact: -3, why: "One small mistake, one more delay, on top of a morning that was already rushed." },
+    { id: "r1_snack", title: "Found a snack", text: "Digging through the bag, Jordan finds a snack that’ll do for later.", impact: 1, why: "A problem that hadn’t even happened yet just got smaller." }
   ],
   stuckPrompts: [
-    { when: "IF THEY IMMEDIATELY SAY “BASICS FIRST”", lines: ["What is Basics First protecting?", "What does it leave less room for if something else goes wrong this morning?"] },
+    { when: "IF THEY IMMEDIATELY SAY “BASICS FIRST”", lines: ["What’s that plan protecting?", "What does it leave no room for if something else goes wrong this morning?"] },
     { when: "IF THE CLASS CANNOT DECIDE", lines: ["Imagine Jordan genuinely only has time for ONE thing before leaving. Which plan gets closest to that?"] },
     { when: "IF THEY TRY TO DO EVERYTHING (“TRY TO FIT IT ALL”)", lines: ["Check the clock — 35 minutes total. Can showering, eating, packing and messages all actually fit?"] },
     { when: "IF NOBODY WANTS TO LEAVE ANYTHING OUT", lines: ["Is doing everything the same as doing everything well this morning?"] }
@@ -1441,24 +1457,46 @@ const ROUND1 = {
     "“Try to Fit It All, because Jordan shouldn’t have to give anything up.”"
   ],
   listenFor: [
-    "Urgent vs important — is a task time-critical, or does it just feel urgent?",
-    "Capacity — poor sleep already lowered what Jordan has to work with before any choice is made.",
-    "Trade-offs, not right answers — every plan protects something and leaves something else thinner.",
+    "Urgent vs important — is a task actually time-critical, or does it just feel urgent?",
+    "Capacity — a short night already lowered what Jordan has to work with, before any choice was made.",
+    "Every plan protects something and leaves something else thinner — nobody has to hunt for the ‘right’ one.",
     "Realistic planning — 35 minutes is a hard limit, not a suggestion."
   ],
-  misconception: { claim: "The highest Energy choice is obviously best.", response: "Maybe — but check what it leaves behind. Energy tells us Jordan’s immediate capacity. It doesn’t tell us whether tomorrow is now overloaded, or whether something else got squeezed out." },
-  selfCareLink: "Self-care can include basics and realistic expectations when capacity is already low."
+  misconception: { claim: "The plan with the highest number is obviously the best one.", response: "Check what it leaves behind first. Energy is Jordan’s immediate capacity — it doesn’t say whether tomorrow just got harder, or what quietly got dropped." },
+  selfCareLink: "Self-care can include basics and realistic expectations — adjusting the plan honestly instead of pretending capacity hasn’t changed.",
+  moments: {
+    r1_story: {
+      selfCareLink: "Sometimes self-care just means being honest about a lower starting capacity, and planning around that instead of pretending the night didn’t happen.",
+      stuckPrompts: [{ when: "IF THE ROOM IS QUIET AT FIRST", lines: ["Just think about the next 35 minutes — what’s Jordan realistically not going to get to?"] }]
+    },
+    r1_vote: {
+      misconception: { claim: "The plan with the highest number is obviously the best one.", response: "Check what it leaves behind first. Energy tells us Jordan’s immediate capacity — it doesn’t say whether tomorrow just got harder, or what got quietly dropped." }
+    },
+    r1_discuss: {
+      purpose: "Get the class naming the trade-off out loud before the number tells them what to think.",
+      stuckPrompts: [{ when: "IF STUDENTS ONLY SAY “GOOD” OR “BAD”", lines: ["Forget good or bad for a second — what did this plan protect, and what did it leave thinner?"] }]
+    },
+    r1_result: {
+      listenFor: ["Whether students connect the Energy number back to what the plan actually did — not to whether it was ‘the right answer’."],
+      selfCareLink: "A number going up doesn’t mean the day is sorted. It means this decision covered what it covered — the rest of the day is still coming."
+    },
+    r1_life: {
+      stuckPrompts: [{ when: "IF STUDENTS SAY THE PLAN IS NOW RUINED", lines: ["Is it ruined, or does it just need adjusting? What’s actually still true?"] }],
+      selfCareLink: "Self-care isn’t making one perfect plan and being done with it. It’s also what happens when that plan meets something Jordan didn’t choose."
+    }
+  }
 };
 
 const ROUND2 = {
   round: 2, time: "8:45 AM", part: "Arrival", title: "FIVE MINUTES BEFORE CLASS",
   story: [
-    "Jordan arrives with five minutes before class.",
-    "The phone has a close-friend DM with the preview hidden, a school-app timetable update, 27 Year 10 group-chat messages and three videos marked ‘WATCH THIS’."
+    "Jordan gets to school with five minutes before class.",
+    "The phone won’t stop: a close friend’s DM with the preview hidden, a school-app timetable update, 27 messages in the Year 10 group chat, three videos marked ‘WATCH THIS’.",
+    "Everything wants attention. There isn’t time to properly check it all."
   ],
-  autoEnergy: -4, autoWhy: "Several things compete for attention at once.",
-  preTalk: ["What deserves attention now, what can wait, and what is not worth carrying today?"],
-  question: "WHAT NEEDS YOUR ATTENTION NOW?",
+  autoEnergy: -4, autoWhy: "Four things are competing for the same five minutes.",
+  preTalk: ["What actually deserves Jordan’s attention right now?"],
+  question: "WHAT ACTUALLY DESERVES ATTENTION NOW?",
   multipleNowPrompt: "YOU ONLY HAVE TIME TO PROPERLY CHECK ONE. WHICH ONE?",
   sortingItems: [
     { id: "item_dm", label: "Close friend DM — preview hidden", canNow: true, canLater: true, canMute: false },
@@ -1468,7 +1506,7 @@ const ROUND2 = {
   ],
   friendDMReveal: "Can I talk to you at lunch? It’s about Sam.",
   attentionManagementGain: 2,
-  attentionManagementWhy: "The +2 comes from committing to a deliberate attention plan — not from choosing the ‘right’ app.",
+  attentionManagementWhy: "The +2 is for actually having a deliberate plan — not for picking a particular app.",
   buildStateMutation(assignments, checkedNowItem) {
     return d => {
       d.energy = clampEnergy(d.energy + ROUND2.attentionManagementGain);
@@ -1487,10 +1525,10 @@ const ROUND2 = {
     };
   },
   stuckPrompts: [
-    { when: "IF EVERYTHING GETS PUT INTO NOW", lines: ["Jordan only has five minutes. What actually happens if all four get checked properly right now?", "If everything is urgent, is anything actually urgent?"] },
+    { when: "IF EVERYTHING GETS PUT INTO NOW", lines: ["Jordan has five minutes. What actually happens if all four get properly checked right now?", "If everything is urgent, is anything actually urgent?"] },
     { when: "IF THEY CANNOT AGREE ON THE ONE ITEM TO CHECK", lines: ["Which one, left unchecked, would bother Jordan the most for the rest of the morning?"] },
-    { when: "IF THEY WANT TO MUTE THE FRIEND DM", lines: ["The friend DM cannot be muted — only NOW or LATER. Why might the game not allow that option here?"] },
-    { when: "IF THEY TREAT MUTE AS “DELETING” SOMETHING IMPORTANT", lines: ["What is the actual difference between muting the group chat and muting a person?"] }
+    { when: "IF THEY WANT TO MUTE THE FRIEND DM", lines: ["The friend DM can’t be muted — only NOW or LATER. Why might that not be an option here?"] },
+    { when: "IF THEY TREAT MUTE AS “DELETING” SOMETHING IMPORTANT", lines: ["What’s the actual difference between muting the group chat and muting a person?"] }
   ],
   suggestedAnswers: [
     "“Check the friend DM now — a person is waiting.”",
@@ -1499,49 +1537,66 @@ const ROUND2 = {
     "“Later the group chat — 27 messages, but nothing sounds urgent.”"
   ],
   listenFor: [
-    "Urgent vs important — a full inbox is not the same as an urgent inbox.",
-    "Attention as a limited resource, not an infinite one.",
-    "The difference between LATER (can still return) and MUTE (gone for good).",
-    "Deliberate postponing vs avoidance — choosing not to check something can be an active decision."
+    "Urgent vs important — a full inbox isn’t the same as an urgent one.",
+    "Attention as a limited resource, the same as time or energy.",
+    "The difference between LATER (can still come back) and MUTE (gone for good).",
+    "Deciding not to check something can be an active choice, not just avoidance."
   ],
-  misconception: { claim: "Checking everything is the responsible thing to do.", response: "Checking everything properly in five minutes isn’t actually possible. The +2 here rewards making a deliberate plan, not clearing every notification." },
-  selfCareLink: "Self-care can include deciding what deserves attention now and what does not."
+  misconception: { claim: "Checking everything is the responsible thing to do.", response: "Checking everything properly in five minutes just isn’t possible. The +2 here is for making a deliberate plan — not for clearing every notification." },
+  selfCareLink: "Self-care can include deciding what deserves attention now, and what genuinely doesn’t.",
+  moments: {
+    r2_story: {
+      selfCareLink: "Attention is a limited resource too — self-care can include deciding what gets access to it.",
+      stuckPrompts: [{ when: "IF THE CLASS TRIES TO SOLVE FOR “WHICH APP IS BEST”", lines: ["It’s not about which one is good or bad — what deserves five real minutes of Jordan’s attention, right now?"] }]
+    },
+    r2_sort: {
+      purpose: "Practise deliberate attention management without ranking apps as good or bad — everything just has to be placed somewhere.",
+      stuckPrompts: [
+        { when: "IF THEY WANT TO CHECK EVERYTHING “JUST QUICKLY”", lines: ["Five minutes, four things — what does ‘quickly’ actually get you on any one of them?"] },
+        { when: "IF THEY SAY MULTIPLE THINGS ARE NOW", lines: ["You’ve said more than one thing matters. Jordan only has time to properly check one — which one?"] }
+      ]
+    },
+    r2_result: {
+      listenFor: ["What can still come back later on this path, and what’s gone for good.", "Whether students notice the +2 rewarded the plan itself, not which app got picked."],
+      selfCareLink: "Deciding what can wait is still a decision — not the same as ignoring it."
+    }
+  }
 };
 
 const ROUND3 = {
   round: 3, time: "10:25 AM", part: "School", title: "THE DUE DATE SHOCK",
-  story: ["The teacher says: ‘Just a reminder — your assessment is due tomorrow at 3 PM.’", "Jordan thought it was due Friday."],
-  autoEnergy: -8, autoWhy: "The surprise creates uncertainty and time pressure.",
-  preTalk: ["What information would actually help Jordan decide what to do next?"], question: "WHAT DOES JORDAN NEED TO KNOW FIRST?",
+  story: ["The teacher says: ‘Just a reminder — your assessment is due tomorrow at 3.’", "Jordan was sure it was Friday.", "The real problem isn’t the assessment yet. It’s that Jordan doesn’t actually know what’s left."],
+  autoEnergy: -8, autoWhy: "The surprise itself creates uncertainty and pressure, before Jordan knows anything real.",
+  preTalk: ["What does Jordan need to know before reacting?"], question: "WHAT DOES JORDAN NEED TO KNOW FIRST?",
   investigation: {
     sources: [
       { id: "sheet", label: "TASK SHEET", role: "Requirements + criteria", impact: 2, direct: true,
-        tellsJordan: "Exactly what is required and how much is genuinely left: one analysis section, a reference check and a final proofread — about 60 minutes.",
-        why: "The task sheet shows Jordan still needs one analysis section, a reference check and a final proofread. Together that is about 60 minutes of work — no second source is needed.",
-        tradeoff: "This answers WHAT is required and HOW MUCH is left. The assessment is not solved; Jordan now has reliable information to plan the remaining hour." },
+        tellsJordan: "Exactly what’s required, and how much is genuinely left: one analysis section, a reference check, a final proofread — about 60 minutes.",
+        why: "The task sheet spells out what’s still needed: one analysis section, a reference check, a final proofread — about 60 minutes of work in total. No second source needed.",
+        tradeoff: "That answers WHAT is required and HOW MUCH is left. The assessment isn’t done — but Jordan now has something real to plan the hour around." },
       { id: "teacher", label: "TEACHER", role: "Clarify what remains", impact: 2, direct: true,
-        tellsJordan: "A direct, current check on progress: one analysis section, a reference check and a final proofread still needed — about 60 minutes in total.",
-        why: "The teacher checks Jordan’s progress and confirms one analysis section, a reference check and a final proofread are still needed — about 60 minutes in total.",
-        tradeoff: "This gives Jordan a direct answer about WHAT remains and HOW MUCH work is left. Jordan still has to decide where that hour fits into the rest of the day." },
+        tellsJordan: "A direct, current check on progress: one analysis section, a reference check and a final proofread still needed — about 60 minutes.",
+        why: "The teacher checks Jordan’s progress directly and confirms the same thing: one analysis section, a reference check, a final proofread — about 60 minutes.",
+        tradeoff: "That’s a direct answer on WHAT remains and HOW MUCH work is left. Jordan still has to decide where that hour actually fits into the rest of the day." },
       { id: "deadline", label: "DEADLINE / CALENDAR", role: "Timing + due point", impact: 1, direct: false,
-        tellsJordan: "WHEN it is due: tomorrow at 3 PM.",
-        stillUnknown: "Exactly WHAT is left to do and HOW LONG it will take.",
-        why: "The deadline/calendar confirms WHEN it is due: tomorrow at 3 PM. It does not tell Jordan exactly WHAT is left or HOW LONG it will take, so a quick Task Sheet or Teacher check is still needed.",
-        tradeoff: "Useful information, but it answers only the timing question. Jordan needs one more source before the workload is clear." },
+        tellsJordan: "WHEN it’s due: tomorrow at 3 PM.",
+        stillUnknown: "Exactly WHAT is left to do, and HOW LONG it will take.",
+        why: "The calendar confirms WHEN it’s due — tomorrow at 3 PM — but not WHAT is left or HOW LONG it’ll take, so a quick Task Sheet or Teacher check is still needed.",
+        tradeoff: "Useful — but it only answers the timing question. One more source before the workload is actually clear." },
       { id: "peer", label: "PEER", role: "Context + what they noticed", impact: 1, direct: false,
-        tellsJordan: "General context — what a classmate noticed or thinks is required.",
-        stillUnknown: "Jordan’s own exact remaining work and how long it will actually take.",
-        why: "A peer can give useful context about what they noticed or what they think is required, but cannot confirm Jordan’s exact remaining work. Jordan still needs the Task Sheet or Teacher.",
-        tradeoff: "Useful context, but not enough to plan Jordan’s exact workload. A second check turns an estimate into reliable information." }
+        tellsJordan: "General context — what a classmate noticed, or thinks is required.",
+        stillUnknown: "Jordan’s own exact remaining work, and how long it’ll actually take.",
+        why: "A peer can give useful context — what they noticed, what they think is required — but can’t confirm Jordan’s own exact remaining work.",
+        tradeoff: "Useful, but not enough to plan a workload around. A second check turns a guess into something reliable." }
     ]
   },
   buildStateMutation(id) { return d => { const s = ROUND3.investigation.sources.find(x => x.id === id); d.energy = clampEnergy(d.energy + s.impact); if (s.direct) d.assessmentRemaining = 60; }; },
   followupMutation() { return d => { d.assessmentRemaining = 60; }; },
   stuckPrompts: [
-    { when: "IF THEY GO STRAIGHT TO TASK SHEET OR TEACHER", lines: ["Good — what does that source tell Jordan that the others couldn’t?"] },
-    { when: "IF THEY CHOOSE DEADLINE OR PEER AND THINK THEY’RE DONE", lines: ["What does Jordan now know? What does Jordan still NOT know?", "Is that enough information to actually plan tonight?"] },
+    { when: "IF THEY GO STRAIGHT TO TASK SHEET OR TEACHER", lines: ["Good — what does that source tell Jordan the others couldn’t?"] },
+    { when: "IF THEY CHOOSE DEADLINE OR PEER AND THINK THEY’RE DONE", lines: ["What does Jordan actually know now? What’s still missing?", "Is that enough to plan tonight around?"] },
     { when: "IF THEY TREAT PEER AS UNRELIABLE OR “WRONG”", lines: ["Is a peer’s information wrong, or just incomplete? What’s the difference?"] },
-    { when: "IF THEY WANT TO CHECK EVERY SOURCE AT ONCE", lines: ["What’s the fastest path to a clear answer? Does Jordan need all four, or just enough?"] }
+    { when: "IF THEY WANT TO CHECK EVERY SOURCE AT ONCE", lines: ["What’s the fastest path to a clear answer — does Jordan need all four, or just enough?"] }
   ],
   suggestedAnswers: [
     "“Task Sheet, because it tells you exactly what’s required.”",
@@ -1550,49 +1605,67 @@ const ROUND3 = {
     "“Peer, because someone in class probably already knows what’s going on.”"
   ],
   listenFor: [
-    "The difference between WHEN, WHAT and HOW MUCH — three different questions, not one.",
-    "Getting accurate information before reacting, rather than guessing under pressure.",
-    "One source can be useful without being complete.",
-    "Reducing uncertainty is progress, even before any work is actually done."
+    "WHEN, WHAT and HOW MUCH are three different questions, not one.",
+    "Getting accurate information before reacting, instead of guessing under pressure.",
+    "A source can be useful without being complete.",
+    "Reducing uncertainty is real progress, even before any work actually gets done."
   ],
-  misconception: { claim: "Checking with a peer was a bad or unreliable choice.", response: "A peer isn’t wrong — they’re incomplete. Their information is real and useful; it just can’t confirm Jordan’s own exact workload the way the Task Sheet or Teacher can." },
-  selfCareLink: "Self-care can include getting accurate information before reacting."
+  misconception: { claim: "Checking with a peer was a bad or unreliable choice.", response: "A peer isn’t wrong — they’re incomplete. What they know is real and useful; it just can’t confirm Jordan’s own exact workload the way the Task Sheet or Teacher can." },
+  selfCareLink: "Getting accurate information can be self-care in itself. Uncertainty uses capacity too.",
+  moments: {
+    r3_story: {
+      selfCareLink: "Uncertainty has a cost of its own, even before Jordan does anything about it. Reducing it is progress.",
+      stuckPrompts: [{ when: "IF STUDENTS WANT TO JUMP STRAIGHT TO ‘HOW’S JORDAN GOING TO GET IT DONE’", lines: ["Slow down — Jordan doesn’t even know what’s actually left yet. What would tell them that first?"] }]
+    },
+    r3_investigate: {
+      purpose: "Show that different sources answer different questions — not that some sources are wrong.",
+      stuckPrompts: [{ when: "IF THEY WANT TO CHECK EVERY SOURCE AT ONCE", lines: ["What’s the fastest path to a clear answer — does Jordan need all four, or just enough?"] }]
+    },
+    r3_followup: {
+      purpose: "Complete the picture with a direct check — this isn’t correcting a wrong first answer.",
+      stuckPrompts: [{ when: "IF THEY THINK THE FIRST CHECK WAS A MISTAKE", lines: ["The first source wasn’t wrong — it just wasn’t enough on its own. What’s still missing?"] }]
+    },
+    r3_result: {
+      listenFor: ["Whether students can say what Jordan now knows, separately from whether the work is actually done."],
+      selfCareLink: "Reducing uncertainty doesn’t finish the assessment — but it gives Jordan something real to plan the rest of the day around."
+    }
+  }
 };
 
 const ROUND4 = {
   round: 4, time: "12:45 PM", part: "Lunch", title: "LUNCH GETS COMPLICATED",
   getStory: (_rs, gs) => [
-    "Jordan is hungry and wants a break.",
+    "Jordan is hungry. Jordan wants a break. And now the friend from this morning wants to talk.",
     gs.friendKnownBeforeLunch
-      ? "Because the class already checked the friend DM this morning, Jordan already knows what this is about. The friend comes over: ‘Hey. Can we talk?’"
-      : "The friend DM was left for later this morning, so Jordan still doesn’t know what this is about. The friend comes over: ‘I messaged you earlier. Can we talk? It’s about Sam.’",
-    "Jordan cares about the friend. Jordan also needs lunch and a pause."
+      ? "The class already checked that DM this morning, so Jordan knows what this is about. The friend comes over: ‘Hey. Can we talk?’"
+      : "That DM got left for later this morning, so Jordan still has no idea what this is about. The friend comes over: ‘I messaged you earlier. Can we talk? It’s about Sam.’",
+    "Two real needs. One lunch break."
   ],
-  autoEnergy: -4, autoWhy: "Two legitimate needs are competing at the same time.",
-  preTalk: ["How could Jordan be there for the friend and still look after what Jordan needs at lunch?"], question: "What approach should Jordan take?",
+  autoEnergy: -4, autoWhy: "Two things Jordan actually cares about just landed at the same time.",
+  preTalk: ["Can Jordan be there for the friend without completely ignoring what Jordan needs?"], question: "HOW DOES JORDAN HANDLE BOTH?",
   dialoguePrompt: "OKAY — WHAT WOULD JORDAN ACTUALLY SAY?",
   choices: [
     { id: "eat_listen", short: "EAT + LISTEN", label: "Eat while listening.", impact: 1, lunch: "covered", hunger: false, friend: "resolved",
-      why: "Jordan combines the conversation with lunch, so both immediate needs are covered.",
-      tradeoff: "The trade-off is that Jordan does not get much separate downtime or space while eating.",
+      why: "Jordan combines the conversation with lunch, so both needs get covered in the same ten minutes.",
+      tradeoff: "There’s not much separate downtime in this — eating and listening happen in the same breath.",
       scripts: ["Come sit with me while I eat. Tell me what happened.", "I want to hear it — I’m going to eat while we talk."] },
     { id: "ten_first", short: "TEN MINUTES FIRST", label: "Eat for ten minutes first, then talk.", impact: 2, lunch: "covered", hunger: false, friend: "resolved",
-      why: "Jordan sets a short, clear boundary, eats first, then follows through with the friend.",
-      tradeoff: "The trade-off is that the friend waits ten minutes.",
+      why: "Jordan sets a short, clear boundary, eats first, then actually follows through with the friend.",
+      tradeoff: "The friend waits ten minutes for it.",
       scripts: ["Give me ten minutes to eat first, then I’ll come find you.", "I do want to talk. Can I eat first and find you in ten?"] },
     { id: "urgency", short: "CHECK URGENCY", label: "Check whether it needs to happen now.", impact: 1, lunch: "covered", hunger: false, friend: "pending",
-      why: "Jordan checks whether the friend is okay. The friend says it can wait, so Jordan eats and the fuller conversation stays pending.",
-      tradeoff: "The trade-off is that the full conversation moves later, so it remains something Jordan still needs to follow up.",
+      why: "Jordan checks in first. The friend says it can wait, so Jordan eats — and the real conversation stays open.",
+      tradeoff: "The full conversation moves later, which means it’s still something Jordan has to come back to.",
       scripts: ["Are you okay? If you are, can we talk after school?", "Is this urgent, or can we talk later when I’ve got more space?"] },
     { id: "go_now", short: "GO NOW", label: "Go with the friend straight away.", impact: -1, lunch: "missed", hunger: true, friend: "resolved",
-      why: "Jordan gives the friend immediate attention, so the conversation is handled, but lunch is missed and hunger carries into the afternoon.",
-      tradeoff: "The trade-off is that Jordan misses lunch and carries hunger into the afternoon.",
+      why: "Jordan gives the friend Jordan’s full attention right away — the conversation gets handled.",
+      tradeoff: "Lunch gets missed, and that hunger doesn’t just disappear — it carries into the afternoon.",
       scripts: ["Okay. Come on — tell me what happened.", "Yep, let’s go. What happened?"] }
   ],
   buildStateMutation(id) { return d => { const c = ROUND4.choices.find(x => x.id === id); d.energy = clampEnergy(d.energy + c.impact); d.lunchHistory = c.lunch; d.currentHunger = c.hunger; d.friendStatus = c.friend; }; },
   stuckPrompts: [
     { when: "IF THEY SAY A GOOD FRIEND MUST DROP EVERYTHING", lines: ["What does Jordan also need right now? Does going immediately make that need disappear?"] },
-    { when: "IF THEY THINK “CHECK URGENCY” IS BRUSHING THE FRIEND OFF", lines: ["Jordan still checks in and still follows up later. What’s the actual difference between that and ignoring the friend?"] },
+    { when: "IF THEY THINK “CHECK URGENCY” IS BRUSHING THE FRIEND OFF", lines: ["Jordan still checks in, and still follows up later. What’s actually different between that and ignoring the friend?"] },
     { when: "IF THEY CANNOT AGREE ON WORDING", lines: ["Forget the ‘nicest’ words for a second — does this line actually match the approach the class chose?"] },
     { when: "IF THEY PICK “GO NOW” WITHOUT NOTICING THE COST", lines: ["What happens to lunch? What does missing it mean for the rest of Jordan’s afternoon?"] }
   ],
@@ -1603,41 +1676,59 @@ const ROUND4 = {
     "“Go now, because the friend said Jordan would talk to them.”"
   ],
   listenFor: [
-    "Boundaries that hold two needs at once, rather than needing to pick only one.",
+    "A boundary that holds two needs at once, rather than forcing a pick between them.",
     "The difference between postponing something and dismissing it.",
-    "Values — what does the class think a good friend actually owes someone here?",
-    "Immediate need (food) vs relationship need (being there) — both are real."
+    "What the class thinks a good friend actually owes someone here.",
+    "Food (immediate) and the relationship (ongoing) are both real needs — neither cancels the other out."
   ],
-  misconception: { claim: "A caring person always drops their own needs for someone else.", response: "Being there for a friend and looking after your own needs aren’t automatically opposites. A short, clear boundary — like ‘give me ten minutes’ — can protect both at once." },
-  selfCareLink: "Supporting another person and meeting your own needs are not always opposites. Boundaries and communication matter."
+  misconception: { claim: "A caring person always drops their own needs for someone else.", response: "Being there for a friend and looking after yourself aren’t automatically opposites. A short, clear line — ‘give me ten minutes’ — can hold both at once." },
+  selfCareLink: "Boundaries don’t have to mean rejecting someone. The right wording can take a friend seriously and still protect what Jordan needs.",
+  moments: {
+    r4_story: {
+      selfCareLink: "This isn’t really friend versus self-care — Jordan cares about the friend and is hungry. Both are true.",
+      stuckPrompts: [{ when: "IF STUDENTS SAY “JUST GO” WITHOUT DISCUSSING IT", lines: ["What does Jordan also need right now, ten minutes into lunch?"] }]
+    },
+    r4_choice: {
+      purpose: "This isn’t friend versus self-care — Jordan cares about the friend and needs lunch. Find an approach that can hold both.",
+      stuckPrompts: [{ when: "IF “A GOOD FRIEND SHOULD JUST GO” COMES UP", lines: ["Maybe. But does being a good friend mean Jordan’s own needs just disappear?"] }]
+    },
+    r4_dialogue: {
+      purpose: "Turn the chosen approach into words a real Year 10 student would actually say.",
+      stuckPrompts: [{ when: "IF THE WORDING SOUNDS TOO FORMAL OR SCRIPTED", lines: ["People don’t talk in strategy labels — what would Jordan actually say out loud?"] }]
+    },
+    r4_result: {
+      listenFor: ["Whether the wording the class chose actually matches the approach it came from."],
+      selfCareLink: "The exact words mattered here as much as the decision — communication can protect a friendship and a need at the same time."
+    }
+  }
 };
 
 const ROUND5 = {
   round: 5, time: "3:12 PM", part: "After school", title: "THE MESSAGE",
-  story: ["Jordan’s rostered shift is 4:30–6:00.", "The manager messages: ‘Can you start at 3:45?’ Extra money would be useful.", "The decision changes how much usable time Jordan has before work."],
-  autoEnergy: 0, preTalk: ["What does Jordan gain and give up with each work response?"], question: "HOW MUCH OF YOUR AFTERNOON ARE YOU WILLING TO TRADE?",
+  story: ["School’s done. Jordan’s rostered to start work at 4:30.", "Then the manager texts: ‘Any chance you can start at 3:45?’", "The extra money would help. But saying yes means giving up most of the only free time Jordan has before work."],
+  autoEnergy: 0, preTalk: ["What are you willing to give up for the extra money?"], question: "HOW MUCH OF THE AFTERNOON ARE YOU WILLING TO TRADE?",
   choices: [
     { id: "yes", short: "YES — 3:45", label: "Yes — start at 3:45.", meta: "Keep about 15 min · +45 paid min", workStart: 945, gapMinutes: 15, extraPaidMinutes: 45, workImpact: -8,
-      why: "Jordan gains 45 extra paid minutes, but the longer shift uses more energy and leaves only 15 usable minutes before work.",
-      tradeoff: "Protects extra income. The trade-off is the smallest gap for food, assessment, a friend, a reset or simply having time open before work." },
+      why: "45 extra paid minutes — but the longer shift costs more energy, and only 15 minutes are left before it starts.",
+      tradeoff: "The smallest possible gap for food, assessment, a friend, a reset, or just having time to breathe before work." },
     { id: "compromise", short: "COMPROMISE — 4:00", label: "Compromise — offer 4:00.", meta: "Keep about 30 min · +30 paid min", workStart: 960, gapMinutes: 30, extraPaidMinutes: 30, workImpact: -7,
-      why: "Jordan keeps 30 usable minutes before work and still earns 30 extra paid minutes.",
-      tradeoff: "Splits the difference between money and time. The trade-off is that 30 minutes still cannot cover every possible need if several things are unresolved." },
+      why: "30 usable minutes before work, and 30 extra paid minutes on the shift — a genuine split.",
+      tradeoff: "30 minutes still can’t cover everything if more than one thing is unresolved." },
     { id: "no", short: "NO — 4:30", label: "No — keep the rostered 4:30 start.", meta: "Keep about 60 min · +0 paid min", workStart: 990, gapMinutes: 60, extraPaidMinutes: 0, workImpact: -6,
-      why: "Jordan keeps the full 60-minute gap before the rostered shift and works the shortest shift of the three options.",
-      tradeoff: "Protects the most usable time before work and uses slightly less energy at work. The trade-off is giving up the extra paid minutes." }
+      why: "The full 60-minute gap before work, and the shortest, least draining shift of the three.",
+      tradeoff: "No extra pay — the trade for keeping the most usable time before work starts." }
   ],
   gapActions: [
-    { id: "assessment", label: "Assessment — 20 min", duration: 20, impact: -2, repeat: true, description: "Complete one focused 20-minute block of the actual assessment. It reduces work left later, but focused work uses Energy." },
-    { id: "friend", label: "Talk to friend — 10 min", duration: 10, impact: -1, description: "Use ten minutes to have the pending friend conversation. It resolves that unfinished people-task, but it still takes attention and Energy." },
-    { id: "food", label: "Get food — 10 min", duration: 10, impact: 3, description: "Only appears when lunch was missed and Jordan is still hungry. It removes the active hunger problem before work." },
-    { id: "reset", label: "Proper reset — 15 min", duration: 15, impact: 2, description: "Take a deliberate low-demand break before the next commitment. It restores some capacity, but it does not complete another responsibility." },
-    { id: "organise", label: "Get organised — 10 min", duration: 10, impact: -1, description: "Gather the assessment materials and set up what Jordan will need later. This reduces friction in the story, but has no hidden Energy bonus and does NOT count as completing tomorrow basics." }
+    { id: "assessment", label: "Assessment — 20 min", duration: 20, impact: -2, repeat: true, description: "One focused 20-minute block of the actual assessment. Reduces what’s left later — but focused work still costs energy now." },
+    { id: "friend", label: "Talk to friend — 10 min", duration: 10, impact: -1, description: "Ten minutes for the pending friend conversation. Resolves it — but still takes attention and energy." },
+    { id: "food", label: "Get food — 10 min", duration: 10, impact: 3, description: "Only shows up if lunch was missed and Jordan’s still hungry. Clears the active hunger problem before the shift starts." },
+    { id: "reset", label: "Proper reset — 15 min", duration: 15, impact: 2, description: "A genuine low-demand break before the next thing starts. Restores some capacity — doesn’t complete anything else." },
+    { id: "organise", label: "Get organised — 10 min", duration: 10, impact: -1, description: "Sort out what Jordan will need later. Smooths things out story-wise, but no hidden Energy bonus — and it does NOT count as tomorrow basics." }
   ],
   lifeEvents: [
-    { id: "shift_late", title: "Shift runs late", text: "Work runs until 6:30. Jordan gets home around 6:50.", impact: -3, why: "Jordan earns another 30 paid minutes, but the normal 7:00 basketball start is now impossible. The evening has to be rebuilt." },
-    { id: "training_moved", title: "Training moved", text: "Basketball is moved to 7:20–8:50.", impact: 0, why: "Jordan gets a larger window before basketball but returns home later. The amount of time is redistributed rather than simply gained." },
-    { id: "home_loud", title: "Home is loud", text: "Home is loud and busy until 7:15. Focused assessment work is blocked during that period.", impact: 0, why: "The early home window cannot be used for focused study, although lower-focus actions can still fit. The plan must adapt rather than stop." }
+    { id: "shift_late", title: "Shift runs late", text: "Work runs until 6:30. Jordan gets home around 6:50.", impact: -3, why: "Another 30 paid minutes — but the normal 7:00 basketball start is gone. The evening has to be rebuilt around it." },
+    { id: "training_moved", title: "Training moved", text: "Basketball’s been moved to 7:20–8:50.", impact: 0, why: "A bigger window before basketball, but a later return home. The time gets redistributed, not gained." },
+    { id: "home_loud", title: "Home is loud", text: "Home’s loud and busy until 7:15. Focused assessment work is off the table until then.", impact: 0, why: "That early window can’t be used for focused study — though lower-focus things still fit. The plan adapts; it doesn’t stop." }
   ],
   stuckPrompts: [
     { when: "IF THEY IMMEDIATELY SAY “ASSESSMENT”", lines: ["What are you protecting by doing it now?", "What are you giving up to do it?"] },
@@ -1653,38 +1744,68 @@ const ROUND5 = {
     "“Leave some time empty because tonight is already packed.”"
   ],
   listenFor: [
-    "Finite time — the gap is real minutes, not an ideal wish list.",
-    "Deliberately leaving time open is a choice too, not a wasted opportunity by default.",
-    "Money vs time as a genuine, values-based trade-off, not an obvious answer.",
-    "What this gap protects for later, versus what it spends now."
+    "Finite time — the gap is real minutes, not a wish list.",
+    "Leaving time open on purpose is a choice too, not automatically a wasted one.",
+    "Money vs time as a genuine, values-based trade — not an obvious answer either way.",
+    "What this gap protects for later, versus what it spends right now."
   ],
-  misconception: { claim: "Working less is automatically better self-care.", response: "Extra money genuinely matters to Jordan too. NO isn’t automatically the ‘healthy’ answer — it’s one trade-off among three real ones, each buying something different." },
-  selfCareLink: "Self-care is not automatically ‘take a break’ or ‘do the homework.’ It can mean deliberately deciding what matters now, what can wait and what consequence comes with that."
+  misconception: { claim: "Working less is always better self-care.", response: "Not necessarily — the money genuinely matters too. NO isn’t automatically the ‘healthy’ answer here; it’s one trade among three real ones, each buying something different." },
+  selfCareLink: "Self-care includes understanding what you’re actually spending — time, energy, money, attention — and choosing the trade deliberately.",
+  moments: {
+    r5_story: {
+      purpose: "Turn a work text into a real resource decision — money against the only free block Jordan has before the shift.",
+      stuckPrompts: [{ when: "IF STUDENTS TREAT THIS AS AN OBVIOUS ‘SAY NO’", lines: ["Would that answer change if the extra money genuinely mattered to Jordan right now?"] }]
+    },
+    r5_choice: {
+      suggestedAnswers: [
+        "“Start at 3:45 because the extra money matters.”",
+        "“Keep 4:30 because Jordan already has too much following them.”",
+        "“Compromise, because it keeps some time without giving up all the extra work.”",
+        "“It depends on whether Jordan’s hungry or still has the friend to deal with.”"
+      ],
+      stuckPrompts: [{ when: "IF THE CLASS TREATS “NO” AS THE OBVIOUSLY RIGHT CHOICE", lines: ["What would make the extra 45 minutes actually worth it?", "Is keeping the full hour automatically the better call?"] }],
+      misconception: { claim: "Working less is always better self-care.", response: "Not necessarily. Money matters too — the point is noticing what Jordan is choosing to trade, not assuming less work always wins." }
+    },
+    r5_gap: {
+      purpose: "Live with the work decision — spend a real, limited number of minutes, not an ideal wish list.",
+      listenFor: ["Whether the class notices which needs are already handled and don’t need this time at all."],
+      selfCareLink: "This isn’t ‘pick the relaxing thing’ — it’s realistic resource management. Jordan can’t give every need everything it wants right now."
+    },
+    r5_work_result: {
+      purpose: "Show that the work result isn’t isolated — it’s built from the lunch and gap decisions that came before it.",
+      stuckPrompts: [{ when: "IF STUDENTS TREAT THE SHIFT RESULT AS A FRESH START", lines: ["What did Jordan carry into this shift from earlier choices — hunger, unfinished assessment, a pending friend?"] }],
+      selfCareLink: "Choices build on each other. Self-care isn’t one isolated good decision — it’s noticing when an earlier one changes what’s needed later."
+    },
+    r5_life2: {
+      stuckPrompts: [{ when: "IF THE EVENT FEELS LIKE IT “RUINS” THE EVENING", lines: ["Focused work might be blocked, but is everything blocked — or just one kind of thing?"] }],
+      selfCareLink: "A changed environment usually means changing the plan, not abandoning it."
+    }
+  }
 };
 
 const ROUND6 = {
-  round: 6, time: "6:20 PM", part: "Home / Basketball", title: "BUILD THE EVENING",
+  round: 6, time: "6:20 PM", part: "Home / Basketball", title: "HOME — AND THE DAY ISN’T DONE",
   autoEnergy: 0,
   getStory: (_rs, gs) => {
-    if (gs.homeTime === 1130) return ["Work ran late. Jordan gets home at 6:50 and cannot make a normal 7:00 basketball start.", "The evening now has a genuine timing collision.", "After the basketball decision, the class will build the evening only up to 10:00 PM. The final 30 minutes stays aside for a Reality Check and getting ready for bed."];
-    if (gs.trainingStart === 1160) return ["Jordan gets home around 6:20.", "Training has moved to 7:20–8:50, creating a bigger window before training and a later return home.", "After the basketball decision, the class will build the evening only up to 10:00 PM. The final 30 minutes stays aside for a Reality Check and getting ready for bed."];
-    return ["Jordan gets home around 6:20.", "Basketball is 7:00–8:30, with getting-ready and travel time fixed around it.", "After the basketball decision, the class will build the evening only up to 10:00 PM. The final 30 minutes stays aside for a Reality Check and getting ready for bed."];
+    if (gs.homeTime === 1130) return ["Work ran late. Jordan gets home at 6:50 — too late for a normal 7:00 basketball start.", "The evening now has a genuine collision in it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
+    if (gs.trainingStart === 1160) return ["Jordan’s home around 6:20.", "Training’s moved to 7:20–8:50 — a bigger window before it, but a later night.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
+    return ["Jordan’s finally home.", "Basketball is 7:00–8:30, with getting-ready and travel fixed around it.", "The class builds the evening up to 10:00 PM. The last 30 minutes stays aside for the Reality Check and getting ready for bed."];
   },
-  preTalk: ["What is worth protecting tonight when the clock may not have room for everything?"],
+  preTalk: ["Something isn’t fitting tonight. What goes?"],
   followingHomeHeading: "WHAT IS FOLLOWING JORDAN HOME?",
-  notEverythingFits: "NOT EVERYTHING FITS.",
+  notEverythingFits: "THERE ISN’T ROOM FOR EVERYTHING.",
   basketballAttendImpact: 1,
   planningEnd: 22 * 60,             // 10:00 PM — the last 30 min is kept as the Round 7 pre-bed buffer
   targetBedtime: 22 * 60 + 30,
   actions: [
-    { id: "dinner", label: "Dinner", duration: 20, impact: 3, description: "Use 20 minutes to cover dinner. This meets the current food need and restores some immediate capacity." },
-    { id: "assessment", label: "Assessment", duration: 20, impact: -2, repeat: true, description: "Complete one 20-minute assessment block. Each block reduces the work still hanging over tomorrow, but costs immediate Energy." },
-    { id: "reset", label: "Proper reset", duration: 15, impact: 2, description: "Protect 15 minutes of genuine lower-demand recovery. It can restore capacity, but it does not make responsibilities disappear." },
-    { id: "friend", label: "Talk to friend", duration: 10, impact: -1, description: "Finish the pending friend conversation if it is still unresolved. It protects the relationship but uses time and attention." },
-    { id: "basics", label: "Tomorrow basics", duration: 10, impact: -1, description: "Pack and charge what Jordan needs for tomorrow. It costs a small amount of Energy tonight but removes that task from Tomorrow Load." }
+    { id: "dinner", label: "Dinner", duration: 20, impact: 3, description: "20 minutes to actually eat. Covers the food need and restores some immediate capacity." },
+    { id: "assessment", label: "Assessment", duration: 20, impact: -2, repeat: true, description: "One 20-minute assessment block. Each one chips away at tomorrow’s load — but costs energy right now." },
+    { id: "reset", label: "Proper reset", duration: 15, impact: 2, description: "15 genuine, low-demand minutes. Restores some capacity — doesn’t make anything else disappear." },
+    { id: "friend", label: "Talk to friend", duration: 10, impact: -1, description: "Finish the pending conversation, if it’s still open. Protects the relationship — costs time and attention." },
+    { id: "basics", label: "Tomorrow basics", duration: 10, impact: -1, description: "Pack and charge what tomorrow needs. Small cost tonight — but it comes off Tomorrow Load." }
   ],
   stuckPrompts: [
-    { when: "IF THEY TRY TO SCHEDULE EVERYTHING", lines: ["Stop there. You have 15 minutes and both of those need 20. Which one goes?"] },
+    { when: "IF THEY TRY TO SCHEDULE EVERYTHING", lines: ["Stop there. You’ve got 15 minutes and both of those need 20. Which one goes?"] },
     { when: "IF THEY WANT TO SKIP BASKETBALL WITHOUT DISCUSSING IT", lines: ["What does keeping basketball protect for Jordan? What does skipping it actually create — more time, or more Energy?"] },
     { when: "IF THEY LEAVE A WINDOW COMPLETELY EMPTY", lines: ["Is that deliberate, or did the class just run out of ideas? Either can be fine — which is it?"] },
     { when: "IF THEY FORGET SOMETHING IS STILL PENDING", lines: ["Look at the WHAT IS FOLLOWING JORDAN HOME list again. What’s still on it?"] }
@@ -1697,37 +1818,60 @@ const ROUND6 = {
     "“Skip basketball, because the schedule genuinely doesn’t have room.”"
   ],
   listenFor: [
-    "Realistic planning — a plan that physically fits the clock, not just a wish list.",
-    "Commitment vs flexibility — which fixed things stay fixed, and what can still move?",
-    "Not everything fitting is a real outcome, not a failure state.",
-    "What the class is protecting: capacity, responsibility, connection, enjoyment, or tomorrow."
+    "A plan that physically fits the clock, not a wish list.",
+    "Which fixed things genuinely stay fixed, and what can still move.",
+    "Not everything fitting is a real outcome here, not a failure.",
+    "What the class is protecting — capacity, responsibility, connection, enjoyment, or tomorrow."
   ],
-  misconception: { claim: "Jordan should just skip basketball.", response: "That creates time, but basketball is also something Jordan values. Self-care doesn’t automatically mean cancelling everything enjoyable — it means weighing it honestly against everything else competing for the same clock." },
-  selfCareLink: "A realistic plan matters more than an ideal plan. Sometimes self-care means accepting that everything cannot fit."
+  misconception: { claim: "Jordan should just skip basketball.", response: "That creates time. It doesn’t magically create Energy — and basketball is also something Jordan values. Self-care isn’t automatically cancelling everything enjoyable." },
+  selfCareLink: "A plan that physically fits matters more than an ideal one. Sometimes self-care is accepting the limit and deciding on purpose what won’t fit.",
+  moments: {
+    r6_story: {
+      purpose: "Before anything gets scheduled, make the class actually look at what the day has already handed Jordan — some of it chosen, some of it just happening.",
+      stuckPrompts: [{ when: "IF STUDENTS TREAT THE EVENING AS A FRESH START", lines: ["None of this appeared out of nowhere — what on that list came from an earlier decision?"] }]
+    },
+    r6_basketball: {
+      purpose: "Decide basketball first, because it changes the actual clock before anything else gets placed.",
+      listenFor: ["What keeping basketball protects for Jordan, versus what skipping it actually creates."],
+      misconception: { claim: "Just skip basketball.", response: "That gives Jordan more time — it doesn’t give Jordan more Energy. Basketball is also something Jordan values. Self-care isn’t automatically cancelling everything enjoyable." },
+      selfCareLink: "A realistic plan holds responsibilities AND the things that actually matter to Jordan."
+    },
+    r6_timeline: {
+      purpose: "Build what actually fits on the real clock — not what would be ideal.",
+      stuckPrompts: [
+        { when: "IF STUDENTS DESCRIBE WHAT JORDAN SHOULD DO IN AN IDEAL WORLD", lines: ["Don’t tell me what Jordan should do — tell me what actually fits."] },
+        { when: "IF SOMETHING DOESN’T FIT A WINDOW", lines: ["There’s the collision. That needs 20, you’ve got 15 — what moves?"] }
+      ],
+      selfCareLink: "An ideal plan that can’t physically happen isn’t a useful plan. Sometimes self-care is accepting the limit and deciding, on purpose, what won’t fit."
+    },
+    r6_result: {
+      listenFor: ["Which earlier decision — the morning, the work choice, the gap — had the biggest effect on how tonight actually laid out."]
+    }
+  }
 };
 
 const ROUND7 = {
   round: 7, time: "10:00 PM", part: "Evening", title: "REALITY CHECK",
   autoEnergy: 0,
-  intro: "Only unresolved items return. Jordan uses available time before the target bedtime first; bedtime only moves later if that time is exhausted.",
+  intro: "Only what’s genuinely unresolved comes back. Jordan uses the time before target bedtime first; bedtime only moves later if that time runs out.",
   stopHeading: "STOP. LOOK AT WHAT YOUR DAY CREATED.",
-  askBeforeChoices: ["Looking at the clock, what is ACTUALLY urgent?", "What can realistically wait until tomorrow?"],
+  askBeforeChoices: ["What ACTUALLY needs a decision tonight?", "What can realistically go to tomorrow?"],
   lifeEvents: [
-    { id: "extra_class_time", title: "Extra class time tomorrow", text: "The teacher confirms up to 20 minutes of class time tomorrow can be used on the assessment.", impact: 1,
-      why: "Jordan now knows there is a real 20-minute school window tomorrow. It makes the deferred work easier to place, but it does not erase the work.",
+    { id: "extra_class_time", title: "Extra class time tomorrow", text: "The teacher confirms up to 20 minutes of class time tomorrow can go toward the assessment.", impact: 1,
+      why: "A real 20-minute window tomorrow. It makes the deferred work easier to place — it doesn’t erase it.",
       eligible: gs => gs.assessmentTomorrow > 0 },
     { id: "task_quicker", title: "Task quicker than expected", text: "One section takes about ten minutes less than expected.", impact: 2,
-      why: "Ten minutes of the evening is unexpectedly recovered.",
+      why: "Ten unexpected minutes just came back into the evening.",
       eligible: gs => gs.assessmentWorkedTonight === true },
     { id: "group_chat_lights", title: "Group chat lights up", text: "The group chat suddenly starts buzzing again.", impact: -2,
-      why: "An attention demand Jordan left active returns. Muted or deliberately parked-until-tomorrow content cannot create this event.",
+      why: "Something Jordan left active is back. Muted or already-parked-for-tomorrow content can’t trigger this.",
       eligible: gs => gs.groupChatStatus === "later" }
   ],
   stuckPrompts: [
     { when: "IF THEY WANT TO INVENT EXTRA WORK", lines: ["Check the list again — is that actually still unresolved, or already dealt with?"] },
-    { when: "IF THEY WANT TO FINISH EVERYTHING TONIGHT NO MATTER THE COST", lines: ["Could Jordan physically do that? What happens to bedtime if we keep adding minutes?"] },
-    { when: "IF THEY TREAT MOVING WORK TO TOMORROW AS FAILURE", lines: ["Is this a deliberate, realistic decision, or is it avoidance? What’s the actual difference?"] },
-    { when: "IF THE CLASS IS UNSURE WHAT’S LEFT", lines: ["Read the three numbers again: current time, free time before bed, Tomorrow Load. What does that actually tell you?"] }
+    { when: "IF THEY WANT TO FINISH EVERYTHING TONIGHT NO MATTER THE COST", lines: ["Okay — put the minutes on the clock. What happens to bedtime?"] },
+    { when: "IF THEY TREAT MOVING WORK TO TOMORROW AS FAILURE", lines: ["Is this deliberate postponing, or avoidance? What’s the actual difference?"] },
+    { when: "IF THE CLASS IS UNSURE WHAT’S LEFT", lines: ["Read the three numbers again: current time, free before bed, Tomorrow Load. What does that actually tell you?"] }
   ],
   suggestedAnswers: [
     "“Finish the assessment tonight — it’s due tomorrow at 3.”",
@@ -1739,29 +1883,39 @@ const ROUND7 = {
   listenFor: [
     "Tonight vs tomorrow as a genuine trade-off, not a test to pass.",
     "Tomorrow Load as a real, visible consequence — not a hidden penalty.",
-    "Deliberate postponing vs avoidance — was this decided on purpose, with a plan?",
-    "Bedtime as a limit, not an afterthought."
+    "Whether a deferral was decided on purpose, with a plan, or just avoided.",
+    "Bedtime treated as a real limit, not an afterthought."
   ],
-  misconception: { claim: "Just finish everything tonight.", response: "There's a real limit here: bedtime. Every extra minute of work tonight is a minute taken straight off sleep. Sometimes the realistic, self-caring choice is to plan tomorrow properly instead of forcing tonight to hold everything." },
-  selfCareLink: "Moving something to tomorrow is not automatically avoidance. It depends on whether the decision is deliberate, realistic and whether tomorrow can carry it."
+  misconception: { claim: "Just finish everything tonight.", response: "There’s a real limit here — bedtime. Every extra minute of work is a minute straight off sleep. Sometimes planning tomorrow properly is the more realistic choice than forcing tonight to hold everything." },
+  selfCareLink: "Moving something to tomorrow isn’t automatically avoidance. It depends on whether the decision is deliberate and whether tomorrow can realistically carry it.",
+  moments: {
+    r7_reality: {
+      purpose: "Only look at what’s genuinely still unfinished — this isn’t adding new jobs to the day.",
+      stuckPrompts: [{ when: "IF STUDENTS START WORRYING ABOUT THINGS ALREADY HANDLED", lines: ["Read the clock before deciding anything — is that actually still open, or already sorted?"] }]
+    },
+    r7_life3: {
+      purpose: "Not every run gets a late complication — this only fires if it’s still genuinely possible.",
+      stuckPrompts: [{ when: "IF STUDENTS ASK WHY NOTHING HAPPENED", lines: ["What would have had to still be unresolved for this to trigger at all?"] }]
+    }
+  }
 };
 
 const ROUND8 = {
   round: 8, time: "Bed", part: "Final decision", title: "ONE LAST DECISION", autoEnergy: 0, voteTimerSeconds: 10,
-  getStory: (_rs, gs) => ["Jordan is in bed. One last message appears:", gs.friendStatus === "pending" ? "YOU AWAKE?? I never got to tell you what happened with Sam." : "YOU AWAKE?? Quick question.", "There is no more information yet."],
-  question: "What should Jordan do?",
-  voteAnticipation: "YOU’RE NOT GETTING ANY MORE INFORMATION. YOU HAVE 10 SECONDS.",
+  getStory: (_rs, gs) => ["Jordan’s in bed. One last message lands:", gs.friendStatus === "pending" ? "YOU AWAKE?? I never got to tell you what happened with Sam." : "YOU AWAKE?? Quick question.", "No more information is coming."],
+  question: "YOU DON’T KNOW WHAT THIS MESSAGE IS ABOUT. HOW MUCH DO YOU GIVE IT TONIGHT?",
+  voteAnticipation: "No more information is coming. You’ve got 10 seconds.",
   choices: [
-    { id: "reply", short: "REPLY", label: "Reply: ‘What’s up?’", impact: 0, duration: 3, why: "Jordan opens the conversation without knowing how long it will become.", tradeoff: "Keeps the connection open tonight, but Jordan has handed the rest of the night over to whatever comes back." },
-    { id: "can_wait", short: "CHECK IF IT CAN WAIT", label: "‘I’m wrecked. Are you okay, or can we talk tomorrow?’", impact: 1, duration: 2, why: "Jordan checks whether there is an immediate need while also setting a clear limit for tonight.", tradeoff: "Protects sleep and still checks urgency, but the fuller conversation may move to tomorrow." },
-    { id: "call", short: "CALL", label: "Call the friend.", impact: -2, duration: 12, why: "Jordan gives the message immediate time and attention by calling.", tradeoff: "Creates the most space for the friend tonight, but uses more time and energy at the end of the day." },
-    { id: "morning", short: "LEAVE UNTIL MORNING", label: "Leave the message until morning.", impact: 1, duration: 0, why: "Jordan decides not to open a new conversation tonight.", tradeoff: "Protects the remaining night completely, but leaves the unanswered message until morning." }
+    { id: "reply", short: "REPLY", label: "Reply: ‘What’s up?’", impact: 0, duration: 3, why: "Jordan opens the door without knowing how far it’s about to swing.", tradeoff: "Keeps the connection open tonight, but hands the rest of the night over to whatever comes back." },
+    { id: "can_wait", short: "CHECK IF IT CAN WAIT", label: "‘I’m wrecked. Are you okay, or can we talk tomorrow?’", impact: 1, duration: 2, why: "Jordan checks for anything urgent while setting a clear limit for tonight.", tradeoff: "Sleep’s protected and urgency gets checked, but the fuller conversation may still land tomorrow." },
+    { id: "call", short: "CALL", label: "Call the friend.", impact: -2, duration: 12, why: "Jordan gives it real time and attention, right now, by calling.", tradeoff: "The most space for the friend tonight — at the cost of time and energy at the very end of the day." },
+    { id: "morning", short: "LEAVE UNTIL MORNING", label: "Leave the message until morning.", impact: 1, duration: 0, why: "Jordan decides tonight isn’t the moment to open this.", tradeoff: "Protects what’s left of the night completely — but the message sits unanswered until morning." }
   ],
   stuckPrompts: [
     { when: "IF THEY ASSUME THE MESSAGE IS AN EMERGENCY", lines: ["What are you assuming? What does the message actually say?"] },
     { when: "IF THEY ASSUME IT’S NOTHING IMPORTANT", lines: ["What are you assuming this time? Could you be just as wrong the other way?"] },
     { when: "IF THE CLASS IS SPLIT", lines: ["What is each option protecting — the friendship, the boundary, or the sleep?"] },
-    { when: "IF STUDENTS ASK WHAT REALLY HAPPENED WITH SAM", lines: ["That’s deliberately left unknown — the decision has to be made without it, the same way real late-night messages often arrive without full context."] }
+    { when: "IF STUDENTS ASK WHAT REALLY HAPPENED WITH SAM", lines: ["That’s deliberately left unknown — Jordan has to decide without it, the way real late-night messages often arrive with no context at all."] }
   ],
   suggestedAnswers: [
     "“Reply, because leaving a friend on read at night feels wrong.”",
@@ -1770,13 +1924,26 @@ const ROUND8 = {
     "“Leave it until morning, because Jordan has been going since 7:10 AM.”"
   ],
   listenFor: [
-    "Decision-making under genuine uncertainty — there isn’t enough information to be sure.",
-    "Boundaries and responsiveness can coexist in the same choice.",
-    "What each option protects: sleep, the relationship, or both partially.",
-    "No answer here is being taught as correct — notice if students start hunting for one."
+    "Deciding under genuine uncertainty — there isn’t enough information to be sure.",
+    "Boundaries and responsiveness sitting in the same choice, not opposite ones.",
+    "What each option is actually protecting: sleep, the relationship, or a bit of both.",
+    "Nobody hunting for the one correct answer — there isn’t one being taught here."
   ],
-  misconception: { claim: "Leaving the message is automatically the self-care answer.", response: "Protecting sleep is one legitimate value here — but so is responding to a friend. There isn’t one ‘self-care’ answer; there are different things being protected by each option." },
-  selfCareLink: "Boundaries, responsiveness and uncertainty can all exist at the same time. There may not be one perfect answer."
+  misconception: { claim: "Leaving the message is the self-care answer.", response: "Protecting sleep is one legitimate value here — but so is responding to a friend. There isn’t a single ‘self-care’ option; each one is protecting something different." },
+  selfCareLink: "Boundaries, relationships and uncertainty can all exist at the same time. There may not be one perfect response.",
+  moments: {
+    r8_story: {
+      stuckPrompts: [{ when: "IF STUDENTS WANT MORE CONTEXT BEFORE DECIDING ANYTHING", lines: ["That’s the point — Jordan doesn’t have it either."] }]
+    },
+    r8_choice: {
+      purpose: "Decide with genuinely incomplete information — no extra clue is coming before the vote.",
+      stuckPrompts: [{ when: "IF STUDENTS DEMAND MORE INFORMATION BEFORE VOTING", lines: ["What are you assuming?", "What are you actually trying to protect?"] }]
+    },
+    r8_result: {
+      listenFor: ["Whether students can name what the choice protected without being told it was right or wrong."],
+      selfCareLink: "The last decision of the day still isn’t a test — it’s one more moment of deciding what to protect with limited information."
+    }
+  }
 };
 
 const FINAL = {
@@ -1800,18 +1967,18 @@ const FINAL = {
   /** Short narrative recap lines, built from the same real state as the receipt, not a raw field dump. */
   getStorySummary: (_rs, gs) => {
     const lines = [];
-    lines.push(gs.extraPaidMinutes > 0 ? `The class chose to trade time for money — Jordan picked up ${gs.extraPaidMinutes} extra paid minutes at work.` : "The class chose to protect time over extra pay — Jordan kept the rostered shift.");
+    lines.push(gs.extraPaidMinutes > 0 ? `The class traded part of the afternoon for money — Jordan picked up ${gs.extraPaidMinutes} extra paid minutes at work.` : "The class kept the afternoon over the extra pay — Jordan worked the rostered shift.");
     if (gs.friendStatus === "resolved") lines.push("The friend conversation got handled somewhere across the day.");
-    else if (gs.friendStatus === "pending") lines.push("The friend conversation never fully closed — it was still pending at the end of the day.");
-    if (gs.basketballStatus === "attend" || gs.basketballStatus === "late") lines.push(gs.basketballStatus === "late" ? "Basketball still happened tonight, just later than planned." : "Basketball stayed part of Jordan’s evening.");
-    else if (gs.basketballStatus === "skip") lines.push("Basketball was skipped, which opened up time the class used elsewhere.");
-    if (gs.assessmentTomorrow > 0) lines.push(`${gs.assessmentTomorrow} minutes of assessment work is still following Jordan into tomorrow.`);
+    else if (gs.friendStatus === "pending") lines.push("The friend conversation never fully closed — still pending at the end of the day.");
+    if (gs.basketballStatus === "attend" || gs.basketballStatus === "late") lines.push(gs.basketballStatus === "late" ? "Basketball still happened tonight, just later than planned." : "Basketball stayed.");
+    else if (gs.basketballStatus === "skip") lines.push("Basketball got skipped — that opened up time the class spent elsewhere.");
+    if (gs.assessmentTomorrow > 0) lines.push(`${gs.assessmentTomorrow} minutes of assessment is following Jordan into tomorrow.`);
     else lines.push("The assessment got fully dealt with today.");
     return lines;
   },
-  debrief: ["Would you run this day again?", "What ONE decision would you change first?", "What consequence would that change create?"],
+  debrief: ["Would you run this day again?", "If you could change ONE decision, which one?", "What consequence would that new decision create?"],
   closing: "SELF-CARE ISN’T KEEPING THE BATTERY AT 100.",
-  closingScript: "A high Energy number can mean Jordan protected capacity — but it can also mean more got left for tomorrow. A lower Energy number can mean Jordan deliberately spent capacity on responsibilities, relationships or things Jordan values. The point was never to maximise the number. Self-care is noticing needs, responsibilities, limits, support and values — then changing the plan when the day changes."
+  closingScript: "A high Energy number can mean Jordan protected capacity — but it can also mean more got left for tomorrow. A lower number can mean Jordan spent capacity on work, school, people, or something Jordan actually cared about. The number only ever tells part of the story."
 };
 
 
@@ -2287,7 +2454,7 @@ function lastDecisionFor(round, gs) {
 function resultBlock(round, gs) {
   const c = lastDecisionFor(round, gs);
   const impact = c?.impact;
-  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "" : `${impact > 0 ? "+" : ""}${impact}`}</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c.tradeoff}</div>` : ""}</div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>WHAT THIS CHANGES</strong><br>${c.tradeoff}</div>` : ""}</div><div class="proj-energy-line"><span>ENERGY</span><strong class="${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "—" : `${impact > 0 ? "+" : ""}${impact}`}</strong></div></div>`;
 }
 
 function lifeBlock(slot, events, gs, rs) {
@@ -2307,7 +2474,7 @@ function renderBody(gs, rs, ui = {}) {
 
   if (v === "r1_story") return bodyStory(ROUND1, gs, rs);
   if (v === "r1_vote") return renderLiveVote(ROUND1, ui);
-  if (v.startsWith("r1_discuss:")) { const c = ROUND1.choices.find(x => x.id === v.split(":")[1]); return `<div class="proj-question">THE CLASS LOCKED</div><div class="projector-focus"><h2>${c.short}</h2><p>${c.label}</p><p>Before the result: what does this protect, and what does it cost?</p></div>`; }
+  if (v.startsWith("r1_discuss:")) { const c = ROUND1.choices.find(x => x.id === v.split(":")[1]); return `<div class="proj-question">THE CLASS LOCKED</div><div class="projector-focus"><h2>${c.short}</h2><p>${c.label}</p><p>Before the result: what’s this plan giving Jordan, and what’s it leaving thinner?</p></div>`; }
   if (v === "r1_result") return resultBlock(ROUND1, gs);
   if (v === "r1_life") return lifeBlock("life1", ROUND1.lifeEvents, gs, rs);
 
@@ -2315,7 +2482,7 @@ function renderBody(gs, rs, ui = {}) {
   if (v === "r2_sort") return renderLiveSort(ui);
   if (v === "r2_result") {
     const muted = [gs.groupChatStatus === "muted" ? "group chat" : null, gs.videosStatus === "muted" ? "videos" : null].filter(Boolean);
-    return `<div class="proj-result"><div class="proj-ownership">YOUR ATTENTION PLAN</div><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">A deliberate attention plan</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "The friend DM was left for later — Jordan does not know what it says yet."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.${muted.length ? `<div class="proj-tradeoff"><strong>GONE FOR GOOD</strong><br>The ${muted.join(" and ")} ${muted.length > 1 ? "were" : "was"} muted, so ${muted.length > 1 ? "they cannot" : "it cannot"} come back later today.</div>` : ""}</div></div>`;
+    return `<div class="proj-result"><div class="proj-ownership">YOUR ATTENTION PLAN</div><div class="proj-result-choice">NOW / LATER / MUTE</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "The friend DM was left for later — Jordan doesn’t know what it says yet."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.${muted.length ? `<div class="proj-tradeoff"><strong>GONE FOR GOOD</strong><br>The ${muted.join(" and ")} ${muted.length > 1 ? "were" : "was"} muted, so ${muted.length > 1 ? "they cannot" : "it cannot"} come back later today.</div>` : ""}</div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+2</strong></div></div>`;
   }
 
   if (v === "r3_story") return bodyStory(ROUND3, gs, rs);
@@ -2367,10 +2534,10 @@ function renderProjectorR3Result(gs) {
   const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 3);
   const c = ROUND3.investigation.sources.find(x => x.id === log?.choiceId);
   const follow = log?.summary || "";
-  if (c?.direct) return `<div class="proj-result"><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">${c.label}</div><div class="proj-result-why">${c.why}<div class="proj-tradeoff"><strong>WHAT JORDAN NOW KNOWS</strong><br>About 60 minutes of assessment work remains. The information is clearer; the work still has to be planned.</div></div></div>`;
+  if (c?.direct) return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">${c.label}</div><div class="proj-result-why">${c.why}<div class="proj-tradeoff"><strong>WHAT JORDAN NOW KNOWS</strong><br>About 60 minutes of assessment work remains. The information is clearer; the work still has to be planned.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+2</strong></div></div>`;
   const first = c?.id === "deadline" ? "The calendar confirmed the due time: tomorrow at 3 PM." : "The peer gave useful context about the task.";
   const second = follow.includes("teacher") ? "The Teacher then clarified exactly what remains." : "The Task Sheet then showed exactly what is required.";
-  return `<div class="proj-result"><div class="proj-result-impact gain">+1</div><div class="proj-result-choice">TWO USEFUL CHECKS</div><div class="proj-result-why">${first}<br>${second}<div class="proj-tradeoff"><strong>NOW THE PICTURE IS COMPLETE</strong><br>About 60 minutes of assessment work remains.</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">TWO USEFUL CHECKS</div><div class="proj-result-why">${first}<br>${second}<div class="proj-tradeoff"><strong>NOW THE PICTURE IS COMPLETE</strong><br>About 60 minutes of assessment work remains.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+1</strong></div></div>`;
 }
 
 function renderProjectorR4Result(gs) {
@@ -2378,7 +2545,7 @@ function renderProjectorR4Result(gs) {
   const c = ROUND4.choices.find(x => x.id === log?.choiceId);
   const said = log?.summary || "Wording chosen by the class";
   const impact = c?.impact ?? 0;
-  return `<div class="proj-result"><div class="proj-ownership">THAT’S WHAT YOUR CLASS SAID.</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c?.tradeoff || ""}</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">THAT’S WHAT YOUR CLASS SAID</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>WHAT THIS CHANGES</strong><br>${c?.tradeoff || ""}</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</strong></div></div>`;
 }
 
 function renderLiveVote(round, ui) {
@@ -2423,12 +2590,12 @@ function renderWorkResult(gs) {
   const spendList = used.length
     ? `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong>${used.map(a => `<span class="spend-check">✓ ${a.label}</span>`).join("")}${gs.workGapRemaining > 0 ? `<span class="spend-cross">✕ ${gs.workGapRemaining} MIN — DIDN’T FIT / LEFT OPEN</span>` : ""}</div>`
     : `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong><span class="spend-cross">✕ LEFT OPEN — NOTHING SPENT</span></div>`;
-  return `<div class="proj-result">${spendList}<div class="proj-result-impact ${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div><div class="proj-result-why">${work?.why || "The work choice now plays out."}<br>Shift Energy: ${work?.workImpact || 0}. Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"}.</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div>${spendList}<div class="proj-result-why">${work?.why || "The work choice now plays out."} Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"}.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</strong></div></div>`;
 }
 
 function renderBasket(gs) {
   const opts = gs.homeTime === 1130 ? ["JOIN LATE — arrive around 7:20", "SKIP BASKETBALL"] : ["ATTEND BASKETBALL", "SKIP BASKETBALL"];
-  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.homeTime)}</span><span class="proj-part">Basketball</span></div><div class="proj-question">What happens with basketball?</div><div class="proj-choices">${opts.map((x, i) => `<div class="proj-choice"><div class="proj-choice-letter">${i + 1}</div><div class="proj-choice-text">${x}</div></div>`).join("")}</div>`;
+  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.homeTime)}</span><span class="proj-part">Basketball</span></div><div class="proj-question">DOES BASKETBALL STAY IN THE EVENING?</div><div class="proj-choices">${opts.map((x, i) => `<div class="proj-choice"><div class="proj-choice-letter">${i + 1}</div><div class="proj-choice-text">${x}</div></div>`).join("")}</div>`;
 }
 
 function fixedEveningBlocks(gs) {
@@ -2550,13 +2717,13 @@ function discussionPromptsForView(v, gs) {
   if (v === "r5_life2") return ["Which fixed part of tonight has changed?", "What must be rebuilt because of this event?", "What remains possible even though the original plan changed?"];
   if (v === "r6_story" || v === "r6_basketball") return ["What does keeping basketball protect for Jordan?", "What time is released if Jordan skips — and what is lost?", "If work ran late, which basketball options are physically possible now?"];
   if (v === "r6_timeline") return ["What genuinely fits in the remaining windows?", "Which useful action is being left unresolved because something else took the time?", "Is the class protecting capacity, responsibility, connection, enjoyment, or tomorrow — and what is the cost?"];
-  if (v === "r6_result") return ["What did the evening protect?", "What is still unresolved at 10:00 PM?", "Which earlier choice had the biggest effect on this evening layout?"];
+  if (v === "r6_result") return ["Looking at tonight’s layout, what actually got covered?", "What’s still sitting there at 10:00 PM?", "Which earlier choice had the biggest effect on how tonight came together?"];
   if (v === "r7_reality") return ["What really needs a decision tonight, and what can deliberately move to tomorrow?", "How much free time exists before bed before bedtime actually shifts?", "What does Tomorrow Load show that the Energy Bar does not?"];
   if (v === "r7_life3") return ["Why was this event possible on this particular path?", "What earlier decision made this event eligible — or prevented another event from appearing?"];
   if (v === "r8_story" || v === "r8_choice") return ["What can Jordan know from this message, and what is still uncertain?", "How much time, attention or boundary is Jordan willing to give it tonight?", "Which option protects connection most? Which protects the remaining night most?"];
-  if (v === "r8_result") return ["What did the final choice protect?", "What did it cost in time or Energy?", "Would you make the same choice if the day had ended with much lower or much higher Energy?"];
-  if (v === "final_receipt") return ["What did this day protect even if Energy ended low?", "If Energy ended high, what — if anything — was moved into Tomorrow Load or left unresolved?", "Which single change would alter the day most, and what new consequence would that create?", "How is your definition of self-care different from the opening?"];
-  return ["What did this protect?", "What did it cost, move or leave unresolved?"];
+  if (v === "r8_result") return ["What did that final choice actually give Jordan — time, energy, or connection?", "What did it use up in return?", "Would you have chosen the same way on a much lower- or much higher-Energy day?"];
+  if (v === "final_receipt") return ["Look past the final number — what actually held up today, even on a lower-Energy path?", "On a higher-Energy path, what quietly moved into Tomorrow Load instead?", "Which single change would alter the day most, and what new consequence would that create?", "How is your definition of self-care different from the opening?"];
+  return ["What just happened, in Jordan’s own terms?", "What did it use up, and what does it leave for later?"];
 }
 
 /** Maps a viewDescriptor to the ROUND content object that owns its teaching-support data (stuckPrompts, suggestedAnswers, listenFor, misconception, selfCareLink). */
@@ -2570,6 +2737,48 @@ function roundForView(v) {
   if (v.startsWith("r7")) return ROUND7;
   if (v.startsWith("r8")) return ROUND8;
   return null;
+}
+
+/** Strips a trailing ":suffix" from a dynamic viewDescriptor, e.g. "r1_discuss:2" → "r1_discuss". */
+function normalizeView(v) {
+  const i = v.indexOf(":");
+  return i === -1 ? v : v.slice(0, i);
+}
+
+/** Looks up the moment object (if any) that owns view v on round content object roundData, trying the exact view first, then the normalised one. */
+function momentFor(roundData, v) {
+  if (!roundData || !roundData.moments) return null;
+  const nv = normalizeView(v);
+  return roundData.moments[v] || roundData.moments[nv] || null;
+}
+
+/**
+ * resolveGuidance() — the single moment-aware resolver for all eight
+ * facilitator teaching-support fields. For each field independently:
+ *   1. Exact viewDescriptor's moment override
+ *   2. Normalised (":suffix"-stripped) viewDescriptor's moment override
+ *   3. Round-level value (today's ROUND.field, or guidanceForView()'s
+ *      per-round purpose/ifNeeded/depth/dontSay)
+ *   4. Generic/base default (guidanceForView()'s built-in base object)
+ * A moment overriding only one field still inherits every other field
+ * from the round — resolution happens field-by-field, never object-by-
+ * object, so nothing is silently dropped.
+ */
+function resolveGuidance(v) {
+  const roundData = roundForView(v);
+  const moment = momentFor(roundData, v);
+  const roundLevel = guidanceForView(v); // {purpose, ifNeeded, depth, dontSay} — round/base fallback tiers 3-4
+  return {
+    purpose: moment && moment.purpose !== undefined ? moment.purpose : roundLevel.purpose,
+    ifNeeded: moment && moment.ifNeeded !== undefined ? moment.ifNeeded : roundLevel.ifNeeded,
+    depth: moment && moment.depth !== undefined ? moment.depth : roundLevel.depth,
+    dontSay: moment && moment.dontSay !== undefined ? moment.dontSay : roundLevel.dontSay,
+    stuckPrompts: (moment && moment.stuckPrompts !== undefined) ? moment.stuckPrompts : (roundData && roundData.stuckPrompts) || [],
+    suggestedAnswers: (moment && moment.suggestedAnswers !== undefined) ? moment.suggestedAnswers : (roundData && roundData.suggestedAnswers) || [],
+    listenFor: (moment && moment.listenFor !== undefined) ? moment.listenFor : (roundData && roundData.listenFor) || [],
+    misconception: (moment && moment.misconception !== undefined) ? moment.misconception : (roundData && roundData.misconception) || null,
+    selfCareLink: (moment && moment.selfCareLink !== undefined) ? moment.selfCareLink : (roundData && roundData.selfCareLink) || ""
+  };
 }
 
 /** RIGHT NOW — one short sentence naming exactly what is happening on screen at this moment. */
@@ -2652,8 +2861,7 @@ function comingNextForView(v) {
  * the mechanic appear in front of them.
  */
 function shell({ round, phase, say = "", ask = null, doNow = "", studentsDo = "", controls = "", extra = "", ifNeeded = [], depth = [], dontSay = "", changes = "", nextUp = "", next = null }) {
-  const gs = getGameState(), v = gs.viewDescriptor || "home", g = guidanceForView(v);
-  const roundData = roundForView(v);
+  const gs = getGameState(), v = gs.viewDescriptor || "home", g = resolveGuidance(v);
   const mergedIf = [...(g.ifNeeded || []), ...(ifNeeded || [])], mergedDepth = [...(g.depth || []), ...(depth || [])];
   const discussion = discussionPromptsForView(v, gs);
   const upcoming = nextUp || comingNextForView(v);
@@ -2663,26 +2871,26 @@ function shell({ round, phase, say = "", ask = null, doNow = "", studentsDo = ""
   const askCard = (ask !== null && String(ask).trim() !== "") ? `<div class="fac-card fac-ask"><div class="fac-card-label">ASK FIRST — BEFORE THE DECISION</div><p>${ask}</p></div>` : "";
 
   // Deepened stuck-prompt rescue lines, patterned "IF THEY SAY X: prompt / prompt".
-  const stuckItems = roundData?.stuckPrompts?.length
-    ? roundData.stuckPrompts.map(sp => `<li><strong>${sp.when}:</strong> ${sp.lines.map(l => `“${l}”`).join(" / ")}</li>`)
+  const stuckItems = g.stuckPrompts?.length
+    ? g.stuckPrompts.map(sp => `<li><strong>${sp.when}:</strong> ${sp.lines.map(l => `“${l}”`).join(" / ")}</li>`)
     : mergedIf.map(x => `<li>${x}</li>`);
   const stuckCard = stuckItems.length ? `<details class="fac-collapse fac-stuck"><summary>IF STUDENTS ARE STUCK — RESCUE PROMPTS</summary><div class="fac-collapse-body"><ul>${stuckItems.join("")}</ul></div></details>` : "";
 
   // Suggested student answers — always framed as possibilities, never an answer key.
-  const suggestedCard = roundData?.suggestedAnswers?.length
-    ? `<details class="fac-collapse fac-suggested"><summary>SUGGESTED STUDENT ANSWERS</summary><div class="fac-collapse-body"><p>Students might say:</p><ul>${roundData.suggestedAnswers.map(a => `<li>${a}</li>`).join("")}</ul><p class="fac-suggested-close">${SUGGESTED_ANSWERS_CLOSE}</p></div></details>`
+  const suggestedCard = g.suggestedAnswers?.length
+    ? `<details class="fac-collapse fac-suggested"><summary>SUGGESTED STUDENT ANSWERS</summary><div class="fac-collapse-body"><p>Students might say:</p><ul>${g.suggestedAnswers.map(a => `<li>${a}</li>`).join("")}</ul><p class="fac-suggested-close">${SUGGESTED_ANSWERS_CLOSE}</p></div></details>`
     : "";
 
-  const listenCard = roundData?.listenFor?.length
-    ? `<details class="fac-collapse fac-listen"><summary>WHAT TO LISTEN FOR</summary><div class="fac-collapse-body"><ul>${roundData.listenFor.map(x => `<li>${x}</li>`).join("")}</ul></div></details>`
+  const listenCard = g.listenFor?.length
+    ? `<details class="fac-collapse fac-listen"><summary>WHAT TO LISTEN FOR</summary><div class="fac-collapse-body"><ul>${g.listenFor.map(x => `<li>${x}</li>`).join("")}</ul></div></details>`
     : "";
 
-  const misconceptionCard = roundData?.misconception
-    ? `<details class="fac-collapse fac-misconception"><summary>MISCONCEPTION TO CORRECT</summary><div class="fac-collapse-body"><p><strong>IF STUDENTS SAY:</strong> “${roundData.misconception.claim}”</p><p><strong>RESPONSE:</strong> ${roundData.misconception.response}</p></div></details>`
+  const misconceptionCard = g.misconception
+    ? `<details class="fac-collapse fac-misconception"><summary>MISCONCEPTION TO CORRECT</summary><div class="fac-collapse-body"><p><strong>IF STUDENTS SAY:</strong> “${g.misconception.claim}”</p><p><strong>RESPONSE:</strong> ${g.misconception.response}</p></div></details>`
     : "";
 
-  const selfCareCard = roundData?.selfCareLink
-    ? `<details class="fac-collapse fac-selfcare"><summary>SELF-CARE LINK</summary><div class="fac-collapse-body"><p>${roundData.selfCareLink}</p></div></details>`
+  const selfCareCard = g.selfCareLink
+    ? `<details class="fac-collapse fac-selfcare"><summary>SELF-CARE LINK</summary><div class="fac-collapse-body"><p>${g.selfCareLink}</p></div></details>`
     : "";
 
   const depthCard = details("DEPTH / NUANCE — WHY THIS WORKS", mergedDepth);
@@ -2704,54 +2912,54 @@ function shell({ round, phase, say = "", ask = null, doNow = "", studentsDo = ""
 function renderController(gs) {
   const v = gs.viewDescriptor;
   if (v === "home") return shell({ round: "Setup", phase: "Ready", say: "Do not read anything to the class yet. Open the Student Screen first. Students should only see the Energy Bar Challenge title and ‘Waiting for the facilitator to begin…’.", ask: "", doNow: "1. Click Open Student Screen. 2. Move that window to the projector/second display. 3. Confirm students only see the waiting title card. 4. When everyone is ready, click Begin Activity.", studentsDo: "Wait on the title screen. They do not answer a question yet.", changes: "Nothing in Jordan’s day has started yet.", next: { label: "Begin Activity →", action: "openingBrainstorm" } });
-  if (v === "opening_brainstorm") return shell({ round: "Opening", phase: "Self-care", say: "Before we start, when you hear the words self-care, what do you think it actually means? Quick ideas only — nobody needs to give a personal example. We’ll come back to this at the end.", ask: "What words or actions come to mind when you hear ‘self-care’?", doNow: "Take 3–5 spoken answers. You do NOT need to type or ‘capture’ them in the program. If useful, jot 2–3 key words on the whiteboard so you can return to them at the end. Do not correct or define self-care yet.", studentsDo: "Call out quick general ideas. No personal disclosure is required.", changes: "Gives the class a starting definition to compare with the day they build.", next: { label: "Meet Jordan →", action: "openingJordan" } });
-  if (v === "opening_jordan") return shell({ round: "Opening", phase: "Meet Jordan", say: "Meet Jordan. Jordan is in Year 10. There is a school assessment in progress. Jordan thinks there is still time. Jordan works from 4:30–6:00 today, and extra hours would be useful. Basketball is tonight — something Jordan actually wants to do. Your job: get Jordan through one ordinary day. Not perfectly. Deliberately.", ask: "What are the different things already competing for Jordan’s time or attention?", doNow: "Read the facts aloud from this script. Do not just tell students to read the projector. Take 2–3 quick observations, then continue.", studentsDo: "Notice that school, paid work, something Jordan values, and ordinary responsibilities all have to fit into the same day.", changes: "Sets up genuine competing priorities before any decisions are made.", next: { label: "Explain Energy →", action: "openingEnergy" } });
-  if (v === "opening_energy") return shell({ round: "Opening", phase: "Energy", say: "Jordan starts at 100 energy. The Energy Bar shows the immediate effect of what is happening. It is not a wellbeing score and it is not grading decisions right or wrong. A useful decision can still take energy. Something easier right now can create another problem later. Sometimes Jordan gets a choice. Sometimes life just happens. There can be more than one reasonable answer. You’re controlling Jordan today. Nobody needs to tell us anything personal.", ask: "So, can a useful or responsible choice still cost energy? Why might that happen?", doNow: "Make sure students understand that Energy is information, not the goal of the game. Get one quick response, then start Round 1.", studentsDo: "Use the Energy Bar to notice immediate capacity while also watching time, responsibilities, people and what gets pushed later.", dontSay: "Highest energy wins.", changes: "Locks the rules for interpreting every later result.", next: { label: "Start Round 1 →", action: "startR1" } });
+  if (v === "opening_brainstorm") return shell({ round: "Opening", phase: "Self-care", say: "Before we start — when you hear the words self-care, what actually comes to mind? Quick ideas only. Nobody needs to give a personal example. We’ll come back to this at the end.", ask: "What words or actions come to mind when you hear ‘self-care’?", doNow: "Take 3–5 spoken answers. You do NOT need to type or ‘capture’ them in the program. If useful, jot 2–3 key words on the whiteboard so you can return to them at the end. Do not correct or define self-care yet.", studentsDo: "Call out quick general ideas. No personal disclosure is required.", changes: "Gives the class a starting definition to compare with the day they build.", next: { label: "Meet Jordan →", action: "openingJordan" } });
+  if (v === "opening_jordan") return shell({ round: "Opening", phase: "Meet Jordan", say: "Meet Jordan. Year 10. There’s a school assessment due soon — Jordan thinks there’s more time than there actually is. Work today is 4:30 to 6, and extra hours would genuinely help. Basketball’s on tonight — something Jordan actually wants. Your job today: get Jordan through one ordinary day. Not perfectly. Deliberately.", ask: "What’s already competing for Jordan’s time before the day’s even started?", doNow: "Read the facts aloud from this script — don’t just point students at the projector. Take 2–3 quick observations, then continue.", studentsDo: "Notice that school, paid work, something Jordan values, and ordinary responsibilities all have to fit into the same day.", changes: "Sets up genuine competing priorities before any decisions are made.", next: { label: "Explain Energy →", action: "openingEnergy" } });
+  if (v === "opening_energy") return shell({ round: "Opening", phase: "Energy", say: "Jordan starts at 100 energy. This bar shows the immediate effect of what’s happening — it isn’t a wellbeing score, and it isn’t grading anyone’s decisions right or wrong. A useful decision can still cost energy. An easy one right now can create a bigger problem later. Sometimes Jordan gets a choice. Sometimes life just happens. You’re controlling Jordan today — nobody needs to tell us anything personal.", ask: "Can a useful or responsible choice still cost energy? Why might that happen?", doNow: "Make sure students understand that Energy is information, not the goal. Get one quick response, then start Round 1.", studentsDo: "Use the Energy Bar to notice immediate capacity while also watching time, responsibilities, people and what gets pushed later.", dontSay: "Highest energy wins.", changes: "Locks the rules for interpreting every later result.", next: { label: "Start Round 1 →", action: "startR1" } });
 
-  if (v === "r1_story") return roundStory(ROUND1, gs, { label: "Show the 4 Plans →", action: "r1Vote" }, "BEFORE YOU CLICK: explain the vote. Say: ‘Next you’ll have 15 seconds to vote. You’ll see four possible morning plans. I’ll read all four first. When I say GO, choose your answer. When you’ve chosen, hold up 1, 2, 3 or 4 fingers for your option and keep them up while I count. There is not one correct answer — choose the plan you think Jordan should use.’");
+  if (v === "r1_story") return roundStory(ROUND1, gs, { label: "Show the 4 Plans →", action: "r1Vote" }, "Before you click: tell the class what’s coming. Say — ‘You’re about to see four plans. I’ll read them all first. Then you get 15 seconds. When time stops, keep your choice in your head and hold up 1, 2, 3 or 4 fingers. There isn’t a secret correct answer.’");
   if (v === "r1_vote") return renderR1Vote();
-  if (v.startsWith("r1_discuss:")) { const id = v.split(":")[1], c = ROUND1.choices.find(x => x.id === id); return shell({ round: "Round 1", phase: "Discuss before reveal", say: `The class locked ${c.short}: ${c.label} We are not looking at the Energy change yet.`, ask: "First, what does this plan protect for Jordan? Second, what does it squeeze, delay or leave less room for?", doNow: "Take one answer for the benefit and one for the trade-off. If students only say ‘good’ or ‘bad’, redirect to what the plan protects and what it leaves less room for. Do not reveal the points yet.", studentsDo: "Name the likely benefit and trade-off before seeing the immediate Energy effect.", changes: "Choice is locked; result is still hidden.", next: { label: "Reveal Result →", action: "r1Reveal" } }); }
+  if (v.startsWith("r1_discuss:")) { const id = v.split(":")[1], c = ROUND1.choices.find(x => x.id === id); return shell({ round: "Round 1", phase: "Discuss before reveal", say: `The class locked in ${c.short}: ${c.label} We’re not looking at Energy yet.`, ask: "What does this plan protect for Jordan first? What does it squeeze, delay or leave less room for?", doNow: "Take one answer for the benefit and one for the trade-off. If students only say ‘good’ or ‘bad’, redirect them to what the plan protects and what it leaves thinner. Don’t reveal the points yet.", studentsDo: "Name the likely benefit and trade-off before seeing the immediate Energy effect.", changes: "Choice is locked; result is still hidden.", next: { label: "Reveal Result →", action: "r1Reveal" } }); }
   if (v === "r1_result") return simpleResult(ROUND1, 1, { label: "Life Happens →", action: "r1Life" });
   if (v === "r1_life") return renderLife("life1", ROUND1.lifeEvents, { label: "Start Round 2 →", action: "startR2" });
 
-  if (v === "r2_story") return roundStory(ROUND2, gs, { label: "Open NOW / LATER / MUTE →", action: "r2Sort" }, "Next, the class will sort every attention demand into NOW, LATER or MUTE. If more than one is NOW, they must choose the single item Jordan actually checks.");
+  if (v === "r2_story") return roundStory(ROUND2, gs, { label: "Open NOW / LATER / MUTE →", action: "r2Sort" }, "Next, the class sorts every attention demand into NOW, LATER or MUTE. If more than one lands on NOW, they choose the single item Jordan actually checks.");
   if (v === "r2_sort") return renderR2Sort();
   if (v === "r2_result") {
-    const friendLine = gs.friendKnownBeforeLunch ? `Jordan checked the friend DM and now knows: “${ROUND2.friendDMReveal}”` : `Jordan did not check the friend DM, so the message is still unknown before lunch.`;
-    const groupLine = gs.groupChatStatus === "muted" ? "The group chat was muted, so it cannot return later." : gs.groupChatStatus === "later" ? "The group chat was parked for later, so it can still return." : `The group chat status is ${gs.groupChatStatus || "not set"}.`;
-    const videoLine = gs.videosStatus === "muted" ? "The videos were muted, so they cannot return later." : gs.videosStatus === "later" ? "The videos were parked for later, so they can still return." : `The videos status is ${gs.videosStatus || "not set"}.`;
-    return shell({ round: "Round 2", phase: "Result", say: `${ROUND2.attentionManagementWhy} ${friendLine} ${groupLine} ${videoLine}`, ask: "What did Jordan choose to know now, what was deliberately left for later, and what can no longer interrupt the day?", doNow: "Read the three consequences in order: friend information, group chat, videos. Make the distinction between LATER and MUTE explicit before moving on.", studentsDo: "Notice that the sort changed what information Jordan has now and what can still return later.", changes: `Friend known before lunch: ${gs.friendKnownBeforeLunch ? "yes" : "no"}. Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}. Energy: ${ROUND2.attentionManagementGain > 0 ? "+" : ""}${ROUND2.attentionManagementGain} for the deliberate plan itself.`, next: { label: "Start Round 3 →", action: "startR3" } });
+    const friendLine = gs.friendKnownBeforeLunch ? `Jordan checked the friend DM and now knows: “${ROUND2.friendDMReveal}”` : `Jordan left the friend DM for later — still no idea what it says.`;
+    const groupLine = gs.groupChatStatus === "muted" ? "The group chat got muted — it can’t come back." : gs.groupChatStatus === "later" ? "The group chat was parked for later — it can still come back." : `Group chat: ${gs.groupChatStatus || "not set"}.`;
+    const videoLine = gs.videosStatus === "muted" ? "The videos got muted — gone for good." : gs.videosStatus === "later" ? "The videos were parked for later — still recoverable." : `Videos: ${gs.videosStatus || "not set"}.`;
+    return shell({ round: "Round 2", phase: "Result", say: `Your attention plan. ${ROUND2.attentionManagementWhy} ${friendLine} ${groupLine} ${videoLine}`, ask: "What did Jordan choose to know now? What got deliberately parked? What can’t interrupt the day anymore?", doNow: "Read the three consequences in order: friend information, group chat, videos. Make the difference between LATER and MUTE explicit before moving on.", studentsDo: "Notice that the sort changed what information Jordan has now, and what can still come back later.", changes: `Friend known before lunch: ${gs.friendKnownBeforeLunch ? "yes" : "no"}. Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}. Energy: ${ROUND2.attentionManagementGain > 0 ? "+" : ""}${ROUND2.attentionManagementGain} for having a deliberate plan.`, next: { label: "Start Round 3 →", action: "startR3" } });
   }
 
-  if (v === "r3_story") return roundStory(ROUND3, gs, { label: "Investigate →", action: "r3Investigate" }, "Next is an information investigation, not a ‘best answer’ vote. The class chooses which source Jordan checks first.");
+  if (v === "r3_story") return roundStory(ROUND3, gs, { label: "Investigate →", action: "r3Investigate" }, "This isn’t a ‘best answer’ vote — it’s an information investigation. The class chooses which source Jordan checks first.");
   if (v === "r3_investigate") return renderR3();
   if (v === "r3_followup") {
     const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 3), first = ROUND3.investigation.sources.find(x => x.id === log?.choiceId);
-    const explanation = first?.id === "deadline" ? "The deadline/calendar answered WHEN it is due — tomorrow at 3 PM — but it did not tell Jordan WHAT is still left or HOW LONG it will take." : "The peer gave Jordan useful context, but cannot confirm Jordan’s exact remaining work or how long it will take.";
-    return shell({ round: "Round 3", phase: "Second check", say: `${explanation} Jordan needs one quick direct check before planning the rest of the day.`, ask: "Which direct source should Jordan use now — the Task Sheet or the Teacher? What will that source add?", doNow: "Choose Task Sheet or Teacher. Explain that this is not correcting a ‘wrong’ first choice; it is completing the missing information.", studentsDo: "Add the missing workload information to what Jordan already learned.", controls: `<button class="btn" data-fac-action="r3Follow:sheet">TASK SHEET — what is required</button> <button class="btn" data-fac-action="r3Follow:teacher">TEACHER — clarify what remains</button>`, changes: "The follow-up confirms about 60 minutes of assessment work remains. The +1 was already awarded for the useful-but-incomplete first check." });
+    const explanation = first?.id === "deadline" ? "The calendar answered WHEN it’s due — tomorrow at 3 — but not WHAT is left or HOW LONG it’ll take." : "The peer gave Jordan useful context, but can’t confirm Jordan’s exact remaining work or how long it’ll take.";
+    return shell({ round: "Round 3", phase: "Second check", say: `${explanation} One quick direct check finishes the picture.`, ask: "Which direct source should Jordan use now — the Task Sheet or the Teacher? What will it add?", doNow: "Choose Task Sheet or Teacher. This isn’t correcting a ‘wrong’ first choice — it’s completing the missing information.", studentsDo: "Add the missing workload information to what Jordan already learned.", controls: `<button class="btn" data-fac-action="r3Follow:sheet">TASK SHEET — what is required</button> <button class="btn" data-fac-action="r3Follow:teacher">TEACHER — clarify what remains</button>`, changes: "The follow-up confirms about 60 minutes of assessment work remains. The +1 was already awarded for the useful-but-incomplete first check." });
   }
   if (v === "r3_result") return renderR3Result(gs);
 
-  if (v === "r4_story") return roundStory(ROUND4, gs, { label: "Choose Approach →", action: "r4Choice" }, "Next the class chooses an approach, then builds Jordan’s exact wording. Do not skip the wording step.");
+  if (v === "r4_story") return roundStory(ROUND4, gs, { label: "Choose Approach →", action: "r4Choice" }, "Next the class chooses an approach, then builds Jordan’s exact wording. Don’t skip the wording step.");
   if (v === "r4_choice") return choiceButtons("Round 4", "Approach", ROUND4.question, ROUND4.choices, "r4Lock");
   if (v === "r4_dialogue") return renderR4Dialogue(gs);
   if (v === "r4_result") return renderR4Result(gs);
 
-  if (v === "r5_story") return roundStory(ROUND5, gs, { label: "Vote on Work →", action: "r5Choice" }, "Next the class chooses YES / COMPROMISE / NO. After that, they will spend the resulting 15 / 30 / 60-minute gap on multiple actions.");
+  if (v === "r5_story") return roundStory(ROUND5, gs, { label: "Vote on Work →", action: "r5Choice" }, "Next the class chooses YES / COMPROMISE / NO. Then they spend the resulting 15 / 30 / 60-minute gap on whatever they think matters.");
   if (v === "r5_choice") return choiceButtons("Round 5", "Work decision", ROUND5.question, ROUND5.choices, "r5Lock");
   if (v === "r5_gap") return renderR5Gap(gs);
   if (v === "r5_work_result") return renderR5WorkResult(gs);
   if (v === "r5_life2") return renderLife("life2", ROUND5.lifeEvents, { label: "Build the Evening →", action: "startR6" });
 
-  if (v === "r6_story") return roundStory(ROUND6, gs, { label: "Basketball Decision →", action: "r6Basketball" }, "Next, decide basketball first. Then the class builds the evening using the real clock; travel and fixed commitments are reserved automatically.");
+  if (v === "r6_story") return roundStory(ROUND6, gs, { label: "Basketball Decision →", action: "r6Basketball" }, "Decide basketball first — it changes the actual clock. Then the class builds the evening around it; travel and fixed commitments reserve themselves automatically.");
   if (v === "r6_basketball") return renderBasketball(gs);
   if (v === "r6_timeline") return renderTimeline(gs);
-  if (v === "r6_result") return shell({ round: "Round 6", phase: "Evening built", say: "This is the evening the class actually built from the available clock.", ask: "What did the plan protect, and what is still unresolved?", doNow: "Review the timeline and remaining assessment/friend/basic-needs state.", studentsDo: "Read the built timeline.", changes: `Current time: ${formatTime(gs.currentTime)}.`, next: { label: "Reality Check →", action: "startR7" } });
+  if (v === "r6_result") return shell({ round: "Round 6", phase: "Evening built", say: "This is the evening the class actually managed to build, from the real time available.", ask: "What did tonight’s plan protect? What’s still unresolved going into bed?", doNow: "Review the timeline and remaining assessment/friend/basic-needs state.", studentsDo: "Read the built timeline.", changes: `Current time: ${formatTime(gs.currentTime)}.`, next: { label: "Reality Check →", action: "startR7" } });
 
   if (v === "r7_reality") return renderReality(gs);
   if (v === "r7_life3") return renderLife3(gs);
 
-  if (v === "r8_story") return roundStory(ROUND8, gs, { label: "Start 10-sec Vote →", action: "r8Choice" }, "Tell students before clicking: ‘You’ll get 10 seconds and no extra information. Vote on what Jordan does with the message.’ On the next screen, press Start when everyone is looking.");
+  if (v === "r8_story") return roundStory(ROUND8, gs, { label: "Start 10-sec Vote →", action: "r8Choice" }, "Tell students before clicking: ‘This is it. You get 10 seconds and no extra information. Vote on what Jordan does with the message.’ On the next screen, press Start when everyone’s looking.");
   if (v === "r8_choice") return renderR8Vote();
   if (v === "r8_result") return simpleResult(ROUND8, 8, { label: "THE DAY YOU BUILT →", action: "final" });
 
@@ -2770,26 +2978,27 @@ function roundStory(round, gs, next, nextUp = "") {
 function choiceButtons(round, phase, question, choices, prefix) {
   const controls = `<div class="fac-choice-list">${choices.map(c => `<button class="btn" data-fac-action="${prefix}:${c.id}"><strong>${c.short || c.id}</strong> — ${c.label}${c.role ? ` · ${c.role}` : ""}${c.meta ? ` · ${c.meta}` : ""}</button>`).join("")}</div>`;
   let ask = "What does each option protect, discover or leave for later?";
-  let doNow = "Read every option aloud from the script. Give students a few seconds to compare them, then use the LIVE CONTROLS to select the class decision. Do not reveal hidden Energy effects before the choice is locked.";
-  let studentsDo = "Compare the options and choose deliberately. They are not hunting for a single correct answer.";
+  let doNow = "Read every option aloud from the script. Give students a few seconds to compare them, then use the LIVE CONTROLS to select the class decision. Don’t reveal hidden Energy effects before the choice is locked.";
+  let studentsDo = "Compare the options and choose deliberately. They’re not hunting for a single correct answer.";
   let changes = "The locked choice updates Jordan’s state and determines what carries forward.";
   let say = `${question} Here are the options: ${optionScript(choices)}`;
   if (round === "Round 3") {
-    ask = "What question could each source answer — WHEN it is due, WHAT is required, or HOW MUCH work is left? What might still be missing after one check?";
-    doNow = "Read all four sources and what each source is for. Then use the LIVE CONTROLS to choose the FIRST source Jordan checks. If that source is useful but incomplete, the program will automatically give you one direct follow-up check — do not treat the first choice as wrong.";
-    studentsDo = "Choose the first information source, then notice whether the information is complete enough to plan.";
-    changes = "Task Sheet/Teacher can establish the workload directly. Deadline/Peer can contribute useful partial information and trigger one follow-up check.";
+    ask = "What question could each source actually answer — WHEN it’s due, WHAT is required, or HOW MUCH work is left? What might still be missing after one check?";
+    doNow = "Read all four sources and what each is for. Use the LIVE CONTROLS to choose the FIRST source Jordan checks. If it’s useful but incomplete, the program automatically gives one direct follow-up check — don’t treat the first choice as wrong.";
+    studentsDo = "Choose the first information source, then notice whether it’s complete enough to actually plan around.";
+    changes = "Task Sheet/Teacher can establish the workload directly. Deadline/Peer contribute useful partial information and trigger one follow-up check.";
     say = `${question} ${choices.map(s => `${s.label} — ${s.tellsJordan}${s.stillUnknown ? ` Still unknown: ${s.stillUnknown}` : ""}`).join(" ")}`;
   } else if (round === "Round 4") {
-    ask = "Which need does each approach protect first? Which approach leaves something waiting or gives Jordan less separate break time?";
-    doNow = "Read all four approaches. Use the LIVE CONTROLS to choose the class approach. Do NOT discuss points yet — the next step is to build the exact words Jordan says, and the result is revealed only after that wording is locked.";
-    studentsDo = "Choose an approach first. Then turn that approach into believable words Jordan could actually say.";
-    changes = "This locks the approach only. The exact wording comes next; Energy and the lunch/friend consequence are revealed after the wording step.";
+    ask = "Which need does each approach protect first? Which one leaves something waiting, or gives Jordan less separate break time?";
+    doNow = "Read all four approaches. Use the LIVE CONTROLS to choose the class approach. Don’t discuss points yet — the next step is building Jordan’s exact words, and the result only reveals once that wording is locked.";
+    studentsDo = "Choose an approach first. Then turn it into believable words Jordan could actually say.";
+    changes = "This locks the approach only. The exact wording comes next; Energy and the lunch/friend consequence reveal after that step.";
   } else if (round === "Round 5") {
-    ask = "What does each response buy Jordan in paid time versus usable time before work? What could realistically fit in 15, 30 or 60 minutes?";
-    doNow = "Read YES, COMPROMISE and NO with the paid-time and usable-gap information. Use the LIVE CONTROLS to lock the work response. The next screen turns that answer into a real 15 / 30 / 60-minute gap that the class must spend.";
-    studentsDo = "Choose the work response knowing it changes both extra pay and the amount of usable time before work.";
-    changes = "The work response sets paid minutes and the size of the pre-work gap. The shift Energy cost is applied later, after the class uses the gap.";
+    say = `Here’s the trade. Jordan can get more money, but the money is buying Jordan’s time. Look at the three options before you vote. ${optionScript(choices)}`;
+    ask = "What would make the extra 45 minutes actually worth it? What are we probably giving up if we pick 3:45?";
+    doNow = "Read YES, COMPROMISE and NO with the paid-time and usable-gap numbers. Use the LIVE CONTROLS to lock the work response. The next screen turns that answer into a real 15 / 30 / 60-minute gap the class has to spend.";
+    studentsDo = "Choose the work response knowing it changes both extra pay and how much usable time is left before work.";
+    changes = "The work response sets paid minutes and the size of the pre-work gap. The shift’s Energy cost is applied later, once the class has used the gap.";
   }
   return shell({ round, phase, say, ask, doNow, studentsDo, controls, changes, next: null });
 }
@@ -2797,7 +3006,8 @@ function choiceButtons(round, phase, question, choices, prefix) {
 function simpleResult(round, r, next) {
   const gs = getGameState(), log = [...(gs.decisionLog || [])].reverse().find(x => x.round === r), list = round.choices || round.investigation?.sources || [], c = list.find(x => x.id === log?.choiceId);
   const impact = c?.impact, trade = c?.tradeoff || "Ask the class to name what this protected and what it left for later.";
-  return shell({ round: `Round ${r}`, phase: "Result", say: `${c?.why || "The consequence is now part of Jordan’s day."} ${trade}${impact != null ? ` The immediate Energy change from this decision is ${impact > 0 ? "+" : ""}${impact}.` : ""}`, ask: r === 3 ? "What question did this source answer for Jordan? Is there anything Jordan still does not know?" : "What did this choice protect? What did it cost, squeeze or move later? Would another option have protected something different?", doNow: "Walk through the result in three steps: 1. what changed, 2. what the decision protected or clarified, 3. what the trade-off or remaining pressure is. Take one quick student response before moving on.", studentsDo: "Explain the consequence and trade-off rather than label the choice correct or incorrect.", dontSay: "That was the best/worst choice.", changes: `Energy now ${gs.energy}. The next round uses the state this decision created.`, next });
+  const decisionLine = c?.short || c?.label ? `The class chose ${c.short || c.label}.` : "The class’s decision is now locked in.";
+  return shell({ round: `Round ${r}`, phase: "Result", say: `${decisionLine} ${c?.why || "The consequence is now part of Jordan’s day."} ${trade}${impact != null ? ` Energy: ${impact > 0 ? "+" : ""}${impact}.` : ""}`, ask: r === 3 ? "What question did this source answer for Jordan? Is there anything Jordan still doesn’t know?" : "What did this choice protect? What did it cost, squeeze or move later? Would another option have protected something different?", doNow: "Walk through the result in this order: what the class chose, what actually happened, what that solved or changed — and only then the Energy number. Take one quick student response before moving on.", studentsDo: "Explain the consequence and trade-off rather than label the choice correct or incorrect.", dontSay: "That was the best/worst choice.", changes: `Energy now ${gs.energy}. The next round uses the state this decision created.`, next });
 }
 
 function renderR1Vote() {
@@ -2812,7 +3022,7 @@ function renderR1Vote() {
     ? `<div class="fac-lock-ready"><strong>TIME STOPPED — NOW LOCK THE CLASS CHOICE</strong><p>Count the raised fingers above, then press the matching button. These buttons are active now.</p><div class="fac-lock-grid">${list.map(c => `<button class="btn ${c.id === winnerId && total > 0 ? "primary" : ""}" data-fac-action="r1Lock:${c.id}">LOCK IN ${c.id} · ${c.short}</button>`).join("")}</div>${total > 0 && !clear && !runoffIds && sorted.length >= 2 ? `<button class="btn fac-runoff-btn" onclick="window._fac.runoff()">Run a top-two runoff instead →</button>` : ""}</div>`
     : `<div class="fac-lock-gate"><strong>LOCK-IN IS NOT AVAILABLE YET</strong><span>${running ? "Let the countdown reach zero. When TIME STOPPED appears, the Lock In buttons will appear here." : "Read all four plans, then press Start. The class gets the full 15 seconds before you lock anything."}</span></div>`;
   const controls = `<div class="fac-timer ${timerExpired ? "stopped" : running ? "running" : "ready"}"><strong>${timerLabel}</strong><button class="btn sm" ${running ? "disabled" : ""} onclick="window._fac.startTimer(15)">${running ? "Voting…" : timerExpired ? "Run 15s again" : "Start 15s vote"}</button></div>${counterRows}${lockPanel}`;
-  return shell({ round: "Round 1", phase: runoffIds ? "Top-two runoff" : "15-second vote", say: `${ROUND1.question} Read the plans exactly before starting the clock: ${optionScript(list)}`, ask: "Which plan should the class use for Jordan, and what is that plan choosing to protect?", doNow: "Use the LIVE CONTROLS directly below this guide. Read every visible plan first. Press Start 15s. Say: ‘Choose your option. When you have chosen, hold up that many fingers and keep them up while I count.’ Let the clock reach TIME STOPPED. Count with +/−, then use the large LOCK IN button for the class choice. If the class is genuinely split, you can run the top-two runoff.", studentsDo: "Listen to all options first. Decide during the 15 seconds. When TIME STOPPED appears, hold up the chosen number until votes are counted.", controls, changes: "No Energy is previewed before the choice is locked. Lock-in controls only appear after TIME STOPPED, so there are no dead Lock buttons to confuse the facilitator." });
+  return shell({ round: "Round 1", phase: runoffIds ? "Top-two runoff" : "15-second vote", say: `${ROUND1.question} Read the plans exactly before starting the clock: ${optionScript(list)}`, ask: "Which plan should the class use for Jordan — and what is that plan choosing to protect?", doNow: "Use the LIVE CONTROLS directly below this guide. Read every visible plan first. Press Start 15s. Say: ‘Choose your option. When you’ve chosen, hold up that many fingers and keep them up while I count.’ Let the clock reach TIME STOPPED. Count with +/−, then use the large LOCK IN button for the class choice. If the class is genuinely split, run the top-two runoff.", studentsDo: "Listen to all options first. Decide during the 15 seconds. When TIME STOPPED appears, hold up the chosen number until votes are counted.", controls, changes: "No Energy is previewed before the choice is locked. Lock-in controls only appear after TIME STOPPED, so there are no dead Lock buttons to confuse the facilitator." });
 }
 
 function renderR2Sort() {
@@ -2822,28 +3032,28 @@ function renderR2Sort() {
   const canLock = allAssigned && !needsChecked;
   const reason = !allAssigned ? `Place all ${ROUND2.sortingItems.length} items before locking.` : needsChecked ? "More than one item is NOW. Choose the ONE item Jordan actually checks." : "Ready — the attention plan can be locked.";
   const controls = `${ROUND2.sortingItems.map(i => `<div class="fac-sort-row"><strong>${i.label}</strong>${["now", "later", "mute"].filter(z => z !== "mute" || i.canMute).map(z => `<button class="btn sm ${sortAssignments[i.id] === z ? "primary" : ""}" onclick="window._fac.sort('${i.id}','${z}')">${z.toUpperCase()}</button>`).join("")}</div>`).join("")}${now.length > 1 ? `<div class="fac-card fac-check-one"><strong>More than one item is NOW — properly check ONE:</strong>${now.map(id => `<button class="btn sm ${checkedNowItem === id ? "primary" : ""}" onclick="window._fac.checkNow('${id}')">${ROUND2.sortingItems.find(i => i.id === id).label}</button>`).join(" ")}</div>` : ""}<div class="fac-readiness ${canLock ? "ready" : "blocked"}"><strong>${canLock ? "READY TO LOCK" : "NOT READY TO LOCK"}</strong><span>${reason}</span></div><button class="btn primary" data-fac-action="r2Lock" ${canLock ? "" : "disabled"}>Lock attention plan →</button>`;
-  return shell({ round: "Round 2", phase: "NOW / LATER / MUTE", say: `Jordan has five minutes. Sort every item into NOW, LATER or MUTE: ${ROUND2.sortingItems.map(i => i.label).join("; ")}. If more than one item is NOW, Jordan can only properly check one of them.`, ask: "What deserves attention now, what can wait, and what is not worth carrying today? If several are NOW, which ONE gets properly checked?", doNow: "Use the LIVE CONTROLS directly below this guide. Place every item. If multiple items are NOW, choose the single item Jordan actually checks. The Lock button stays visible and tells you exactly what is missing until the plan is valid.", studentsDo: "Build one deliberate attention plan together, then commit it.", controls, changes: "A committed plan gives +2 regardless of which app was chosen. Muted items cannot return later." });
+  return shell({ round: "Round 2", phase: "NOW / LATER / MUTE", say: `Five minutes. Four things asking for attention: ${ROUND2.sortingItems.map(i => i.label).join("; ")}. If more than one lands on NOW, Jordan can only properly check one of them.`, ask: "What actually deserves attention now, what can wait, and what isn’t worth carrying today? If several are NOW, which ONE gets properly checked?", doNow: "Use the LIVE CONTROLS directly below this guide. Place every item. If multiple land on NOW, choose the single item Jordan actually checks. The Lock button stays visible and tells you exactly what’s missing until the plan is valid.", studentsDo: "Build one deliberate attention plan together, then commit it.", controls, changes: "A committed plan gives +2 regardless of which app was chosen. Muted items cannot return later." });
 }
 
 function renderR3() { return choiceButtons("Round 3", "Information investigation", ROUND3.question, ROUND3.investigation.sources, "r3Lock"); }
 
 function renderR3Result(gs) {
   const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 3), c = ROUND3.investigation.sources.find(x => x.id === log?.choiceId), follow = log?.summary || "";
-  if (c?.direct) return shell({ round: "Round 3", phase: "Result", say: `${c.why} ${c.tradeoff} The immediate Energy change is +2.`, ask: "What question did this source answer for Jordan? How does knowing there are about 60 minutes left change the next decisions?", doNow: "Spell out the information gained: what remains and roughly how long it will take. Then take one response about how reliable information changes planning.", studentsDo: "Notice that the source did not solve the assessment — it made the workload clear enough to plan.", dontSay: "This was the only correct source.", changes: `Assessment remaining: ${gs.assessmentRemaining} minutes. Energy now ${gs.energy}.`, next: { label: "Start Round 4 →", action: "startR4" } });
-  const first = c?.id === "deadline" ? "The deadline/calendar confirmed WHEN it is due — tomorrow at 3 PM." : "The peer gave useful context about the task.";
+  if (c?.direct) return shell({ round: "Round 3", phase: "Result", say: `The class checked the ${c.label}. ${c.why} ${c.tradeoff} Energy: +2.`, ask: "What question did this source answer for Jordan? How does knowing there’s about 60 minutes left change the next decisions?", doNow: "Spell out what was actually gained: what remains, and roughly how long it’ll take. Then take one response about how reliable information changes planning.", studentsDo: "Notice that the source didn’t solve the assessment — it made the workload clear enough to plan around.", dontSay: "This was the only correct source.", changes: `Assessment remaining: ${gs.assessmentRemaining} minutes. Energy now ${gs.energy}.`, next: { label: "Start Round 4 →", action: "startR4" } });
+  const first = c?.id === "deadline" ? "The class checked the calendar first — it confirmed WHEN it’s due, tomorrow at 3." : "The class checked a peer first — useful context about the task.";
   const second = follow.includes("teacher") ? "The Teacher then clarified exactly what remains." : "The Task Sheet then showed exactly what is required.";
-  return shell({ round: "Round 3", phase: "Result", say: `${first} That was useful, but not enough to plan the workload. ${second} Together, the two checks confirm about 60 minutes of assessment work remains. The Energy change for this two-step information path is +1 in total.`, ask: "What did the first source tell Jordan, and what did the second source add? Why is that different from calling the first source ‘wrong’?", doNow: "Walk through the two-step chain explicitly: FIRST source = useful partial information. SECOND source = exact workload. Then state that Jordan now has enough information to plan, even though the work itself still remains.", studentsDo: "Explain how different sources can answer different questions and combine into a clearer picture.", dontSay: "Peer/Deadline was a bad choice.", changes: `Assessment remaining: ${gs.assessmentRemaining} minutes. Energy now ${gs.energy}.`, next: { label: "Start Round 4 →", action: "startR4" } });
+  return shell({ round: "Round 3", phase: "Result", say: `${first} Useful, but not enough to plan around. ${second} Together, the two checks confirm about 60 minutes of assessment work remains. Energy for the whole two-step check: +1.`, ask: "What did the first source tell Jordan, and what did the second one add? Why isn’t that the same as calling the first choice ‘wrong’?", doNow: "Walk through the two-step chain explicitly: FIRST source = useful partial information. SECOND source = the exact workload. Then say that Jordan now has enough information to plan — even though the work itself is still there.", studentsDo: "Explain how different sources answer different questions and combine into a clearer picture.", dontSay: "Peer/Deadline was a bad choice.", changes: `Assessment remaining: ${gs.assessmentRemaining} minutes. Energy now ${gs.energy}.`, next: { label: "Start Round 4 →", action: "startR4" } });
 }
 
 function renderR4Dialogue(gs) {
   const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 4 && x.choiceId), c = ROUND4.choices.find(x => x.id === log?.choiceId);
   const controls = `<div class="fac-choice-list">${c.scripts.map((script, i) => `<button class="btn" data-fac-action="r4Script:${i}">“${script}”</button>`).join("")}<div class="fac-class-wording"><label for="r4-class-wording"><strong>OR USE THE CLASS’S OWN WORDING</strong></label><input id="r4-class-wording" type="text" maxlength="180" placeholder="Type the class wording here so it appears in the result"><button class="btn" data-fac-action="r4ScriptClass">Use this class wording</button></div></div>`;
-  return shell({ round: "Round 4", phase: "Build Jordan’s exact response", say: `The approach is locked, but the result has NOT been revealed yet. Now decide what Jordan actually says. Read the two suggested lines: ${c.scripts.map(x => `“${x}”`).join(" OR ")}. The class can also create its own wording if it keeps the same approach.`, ask: "Which wording sounds believable for Jordan and still does what the class chose?", doNow: "Use the LIVE CONTROLS. Read both suggested lines. Choose one, or type the class’s wording into the box and press Use this class wording. The selected line will appear on the result screen. Only then is the lunch/friend consequence and Energy change applied.", studentsDo: "Choose or build Jordan’s actual sentence, not just the idea behind it.", controls, changes: "The approach is already fixed. This step records the exact words and then reveals the consequence." });
+  return shell({ round: "Round 4", phase: "Build Jordan’s exact response", say: `The approach is locked, but the result hasn’t been revealed yet. People don’t speak in strategy labels — what would Jordan actually say? Read the two suggested lines: ${c.scripts.map(x => `“${x}”`).join(" OR ")}. The class can also build its own wording, as long as it keeps the same approach.`, ask: "Which wording sounds believable for Jordan, and still does what the class chose?", doNow: "Use the LIVE CONTROLS. Read both suggested lines. Choose one, or type the class’s wording into the box and press Use this class wording. The selected line appears on the result screen. Only then does the lunch/friend consequence and Energy change apply.", studentsDo: "Choose or build Jordan’s actual sentence, not just the idea behind it.", controls, changes: "The approach is already fixed. This step records the exact words and then reveals the consequence." });
 }
 
 function renderR4Result(gs) {
   const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 4 && x.choiceId), c = ROUND4.choices.find(x => x.id === log?.choiceId), said = log?.summary || "Wording chosen by the class";
-  return shell({ round: "Round 4", phase: "Result", say: `Jordan said: “${escapeHtml(said)}” ${c?.why || ""} ${c?.tradeoff || ""} The immediate Energy change is ${c?.impact > 0 ? "+" : ""}${c?.impact || 0}.`, ask: "Did the wording actually match the approach the class chose? What did this protect, and what is now resolved or still pending?", doNow: "Read the exact line the class selected, then explain the consequence in order: lunch, friend status, immediate Energy, and anything that now returns later. Take one quick response about the trade-off.", studentsDo: "Connect the words Jordan used to the practical consequence. Notice whether food or the friend conversation is still in play.", dontSay: "That was the nicest/best answer.", changes: `Lunch: ${gs.lunchHistory}. Friend: ${gs.friendStatus}. Hunger now: ${gs.currentHunger ? "yes" : "no"}. Energy now ${gs.energy}.`, next: { label: "Start Round 5 →", action: "startR5" } });
+  return shell({ round: "Round 4", phase: "Result", say: `That’s what your class said. Jordan said: “${escapeHtml(said)}” ${c?.why || ""} ${c?.tradeoff || ""} Energy: ${c?.impact > 0 ? "+" : ""}${c?.impact || 0}.`, ask: "Did the wording actually match the approach the class chose? What did this protect, and what’s now resolved or still pending?", doNow: "Read the exact line the class selected, then explain the consequence in order: lunch, friend status, then the Energy change last. Take one quick response about the trade-off.", studentsDo: "Connect the words Jordan used to the practical consequence. Notice whether food or the friend conversation is still in play.", dontSay: "That was the nicest/best answer.", changes: `Lunch: ${gs.lunchHistory}. Friend: ${gs.friendStatus}. Hunger now: ${gs.currentHunger ? "yes" : "no"}. Energy now ${gs.energy}.`, next: { label: "Start Round 5 →", action: "startR5" } });
 }
 
 function renderR5Gap(gs) {
@@ -2851,39 +3061,40 @@ function renderR5Gap(gs) {
   const items = ROUND5.gapActions.map(a => ({ ...a, ...round5GapAvailability(gs, a) }));
   const unavailable = items.filter(a => !a.ok), selected = (gs.workGapActions || []);
   const controls = `<div class="fac-choice-list">${items.map(a => `<div class="fac-action-row ${a.ok ? "available" : "unavailable"}"><button class="btn" ${a.ok ? `data-fac-action="r5Gap:${a.id}"` : "disabled"}>${a.label} · ${a.impact > 0 ? "+" : ""}${a.impact}</button><small><strong>${a.description || ""}</strong><br>${a.ok ? `Available — uses ${a.duration} of ${gs.workGapRemaining} remaining minutes.` : `Why unavailable: ${a.reason}`}</small></div>`).join("")}</div><div class="fac-mini-log"><strong>Chosen so far</strong><br>${selected.map(a => `${a.label} (${a.duration}m)`).join(" · ") || "Nothing yet"}</div><button class="btn" data-fac-action="_undo" ${selected.length ? "" : "disabled"}>Undo last gap action</button> <button class="btn primary" data-fac-action="r5FinishGap">Lock gap with ${gs.workGapRemaining} min left open →</button>`;
-  return shell({ round: "Round 5", phase: "Use the gap", say: `The class chose ${work?.short || "the work response"}. That creates ${gs.workGapTotal} usable minutes before work and ${work?.extraPaidMinutes || 0} extra paid minutes. ${gs.workGapRemaining} usable minutes remain right now. You do not have to fill every minute.`, ask: "What is worth using this limited gap for? Which useful things simply do not fit on this path?", doNow: "Use the LIVE CONTROLS directly below this guide. Add one action at a time. Read the duration before selecting it, then announce the new remaining time. Disabled actions are intentional: read the reason shown underneath. The Undo button only activates after a gap action has actually been added. The class may stop and deliberately leave time open.", studentsDo: "Spend a real limited block of time. Some actions are unavailable because a need was already handled earlier; others become unavailable because there is not enough time left.", controls, ifNeeded: unavailable.length ? ["If students ask why something is greyed out, read the reason directly. Availability comes from earlier choices and the remaining clock — not from a hidden ‘good/bad’ rule."] : [], changes: `This path currently has ${gs.assessmentRemaining} assessment minutes left; friend ${gs.friendStatus || "not pending"}; food need ${gs.currentHunger ? "yes" : "no"}. Work itself applies ${work?.workImpact || 0} Energy when the gap is locked.` });
+  return shell({ round: "Round 5", phase: "Use the gap", say: `We’ve made the work decision. Now we live with it. We kept ${gs.workGapTotal} minutes. You do not have to fill every second — but whatever we leave can follow Jordan into tonight. ${gs.workGapRemaining} minutes remain right now.`, ask: "What feels worth using these minutes for? What would make tonight easier? What can we deliberately leave?", doNow: "Use the LIVE CONTROLS directly below this guide. Add one action at a time. Read the duration before selecting it, then announce the new remaining time. Disabled actions are intentional — read the reason shown underneath. The Undo button only activates after a gap action has actually been added. The class may stop and deliberately leave time open.", studentsDo: "Spend a real limited block of time. Some actions are unavailable because a need was already handled earlier; others because there’s simply not enough time left.", controls, ifNeeded: unavailable.length ? ["If students ask why something is greyed out, read the reason directly. Availability comes from earlier choices and the remaining clock — not a hidden ‘good/bad’ rule."] : [], changes: `This path currently has ${gs.assessmentRemaining} assessment minutes left; friend ${gs.friendStatus || "not pending"}; food need ${gs.currentHunger ? "yes" : "no"}. Work itself applies ${work?.workImpact || 0} Energy when the gap is locked.` });
 }
 
 function renderR5WorkResult(gs) {
   const work = ROUND5.choices.find(c => c.id === gs.workChoice);
   const hungerPenalty = gs.currentHunger ? -3 : 0;
   const total = (work?.workImpact || 0) + hungerPenalty;
-  const hungerLine = gs.currentHunger ? " Jordan also started work still hungry, adding −3 because the missed food need carried into the shift." : " Jordan started work without an unresolved hunger penalty.";
-  return shell({ round: "Round 5", phase: "Work shift result", say: `${work?.why || "The work choice now plays out."} The shift itself changes Energy by ${work?.workImpact || 0}.${hungerLine} Total shift-related Energy change: ${total}.`, ask: "What did this work choice protect, and what did it squeeze? Which earlier choices changed what Jordan carried into work?", doNow: "Name the work trade-off explicitly: extra paid minutes, usable pre-work time, shift Energy cost, and whether hunger carried into the shift. Then take one response about what is still unresolved after work.", studentsDo: "Connect the work result back to the earlier day instead of treating it as an isolated score.", changes: `Energy now ${gs.energy}. Extra paid work: ${gs.extraPaidMinutes || 0} min. Pre-work gap left open: ${gs.workGapRemaining || 0} min. Assessment left: ${gs.assessmentRemaining} min. Friend: ${gs.friendStatus || "not pending"}. Food need: ${gs.currentHunger ? "still hungry" : "not currently hungry"}.`, next: { label: "Life Happens after work →", action: "r5Life2" } });
+  const hungerLine = gs.currentHunger ? " Jordan also started the shift still hungry — that missed-lunch need followed straight in, adding −3." : " Jordan started the shift without a carried-over hunger penalty.";
+  return shell({ round: "Round 5", phase: "Work shift result", say: `The class chose ${work?.short || "the work response"}. ${work?.why || "The work choice now plays out."}${hungerLine} Look at how much of this came from earlier choices. Shift Energy: ${work?.workImpact || 0}. Total shift-related change: ${total}.`, ask: "What did the extra paid time actually cost us? What did the gap manage to save? What’s still following Jordan home?", doNow: "Read the result in order: what the class chose, what carried in from lunch and the gap, then the shift’s own Energy cost last. Take one response about what’s still unresolved after work.", studentsDo: "Connect the work result back to the earlier day instead of treating it as an isolated score.", changes: `Energy now ${gs.energy}. Extra paid work: ${gs.extraPaidMinutes || 0} min. Pre-work gap left open: ${gs.workGapRemaining || 0} min. Assessment left: ${gs.assessmentRemaining} min. Friend: ${gs.friendStatus || "not pending"}. Food need: ${gs.currentHunger ? "still hungry" : "not currently hungry"}.`, next: { label: "Life Happens after work →", action: "r5Life2" } });
 }
 
 function renderLife(slot, events, next) {
   const gs = getGameState(), rs = getRunState(), id = rs[slot], e = events.find(x => x.id === id), applied = gs.lifeEffectsApplied?.[slot];
   const controls = !applied && e ? `<button class="btn primary" data-fac-action="apply:${slot}">Reveal / apply this consequence →</button>` : "";
   const say = !applied
-    ? `Jordan made a plan. Now something happens Jordan did not choose.${e ? ` ${e.title}. ${e.text}` : ""}`
+    ? `We made a reasonable plan with the information Jordan had. Now something changes that Jordan didn’t choose.${e ? ` ${e.title}. ${e.text}` : ""}`
     : (e ? `${e.title}. ${e.text}` : "Life happens.");
-  return shell({ round: slot === "life1" ? "Round 1" : slot === "life2" ? "Round 5" : "Round 7", phase: "Life Happens", say, ask: "What just changed? Does the original plan still work?", doNow: applied ? "The event is already applied. Briefly name the changed state before continuing." : "Read the event exactly as shown. Take one quick response about what changes, then use the LIVE CONTROL directly below this guide to apply it once. Do not reveal a hidden Energy number before the student screen does.", studentsDo: "Adapt the plan to an event Jordan did not choose.", controls, changes: e?.why || "The day changes.", next: applied ? next : null });
+  const ask = applied ? "What changed? Does the original plan still work?" : "So — does our plan still work? What changed? What can Jordan still control?";
+  return shell({ round: slot === "life1" ? "Round 1" : slot === "life2" ? "Round 5" : "Round 7", phase: "Life Happens", say, ask, doNow: applied ? "The event is already applied. Briefly name the changed state before continuing." : "Read the event exactly as shown. Take one quick response about what changes, then use the LIVE CONTROL directly below this guide to apply it once. Don’t reveal a hidden Energy number before the student screen does.", studentsDo: "Adapt the plan to an event Jordan didn’t choose.", controls, changes: e?.why || "The day changes.", next: applied ? next : null });
 }
 
 function renderBasketball(gs) {
   const choices = basketballChoices(gs), collision = gs.homeTime === 18 * 60 + 50;
   const controls = `<div class="fac-primary-decision">${choices.map((c, i) => `<button type="button" class="btn ${i === 0 ? "primary" : ""}" data-fac-action="basket:${c.id}">${c.label}</button>`).join("")}</div>`;
-  return shell({ round: "Round 6", phase: "Basketball decision", say: `${collision ? "Work ran late, so Jordan cannot physically make the normal 7:00 start." : "Jordan is home and basketball is still something Jordan wants to do."} The available choices are: ${choices.map(c => c.label).join(" or ")}. This decision happens BEFORE the evening plan because it changes the actual clock.`, ask: "Does Jordan protect basketball tonight, or release that block of time? What will that do to the evening schedule?", doNow: "Use the LIVE CONTROLS directly below this guide. These are the real facilitator buttons. Once you choose, the evening windows immediately recalculate. If SKIP is selected, basketball plus travel disappear and that time becomes usable evening time.", studentsDo: "Choose whether basketball stays in Jordan’s evening. The next screen rebuilds the clock around that decision.", controls, changes: "ATTEND / JOIN LATE adds +1 immediate Energy because it is something Jordan wants. SKIP adds 0 Energy but releases the basketball and travel time. The timeline is rebuilt after the click." });
+  return shell({ round: "Round 6", phase: "Basketball decision", say: `${collision ? "Work ran late, so Jordan can’t physically make the normal 7:00 start." : "Jordan’s home, and basketball is still something Jordan actually wants tonight."} The available choices are: ${choices.map(c => c.label).join(" or ")}. This gets decided before the rest of the evening, because it changes the actual clock.`, ask: "Does keeping basketball protect for Jordan? What does skipping it actually create — more time, or more Energy?", doNow: "Use the LIVE CONTROLS directly below this guide. These are the real facilitator buttons. Once you choose, the evening windows immediately recalculate. If SKIP is selected, basketball plus travel disappear and that time becomes usable evening time.", studentsDo: "Choose whether basketball stays in Jordan’s evening. The next screen rebuilds the clock around that decision.", controls, changes: "ATTEND / JOIN LATE adds +1 immediate Energy because it’s something Jordan wants. SKIP adds 0 Energy but releases the basketball and travel time. The timeline rebuilds after the click." });
 }
 
 function renderTimeline(gs) {
   const avs = ROUND6.actions.map(a => ({ ...a, ...actionAvailability(gs, a) }));
   const choiceLabel = { attend: "ATTEND BASKETBALL", late: "JOIN LATE", skip: "SKIP BASKETBALL" }[gs.basketballStatus] || "basketball not decided";
-  const reflow = gs.basketballStatus === "skip" ? "Basketball and travel have been removed. The evening has been recalculated as one open block from home until 10:00 PM." : `The ${choiceLabel} decision is now fixed into the clock. Travel and basketball time cannot be used for other actions.`;
+  const reflow = gs.basketballStatus === "skip" ? "Basketball and travel have been removed. The evening’s been recalculated as one open block from home until 10:00 PM." : `The ${choiceLabel} decision is now fixed into the clock. Travel and basketball time can’t be used for anything else.`;
   const placed = (gs.eveningActions || []).slice().sort((a, b) => a.start - b.start || a.end - b.end);
   const controls = `<div class="fac-choice-list">${avs.map(a => `<div class="fac-action-row ${a.ok ? "available" : "unavailable"}"><button class="btn" ${a.ok ? `data-fac-action="evening:${a.id}"` : "disabled"}>${a.label} · ${a.duration}m · ${a.impact > 0 ? "+" : ""}${a.impact}</button><small><strong>${a.description || ""}</strong><br>${a.ok ? a.reason : `Why unavailable: ${a.reason}`}</small></div>`).join("")}</div><div class="fac-mini-log"><strong>Placed on the clock</strong><br>${placed.map(a => `${formatTime(a.start)}–${formatTime(a.end)} ${a.label}`).join("<br>") || "No flexible actions placed yet"}</div><button class="btn" data-fac-action="_undo" ${placed.length ? "" : "disabled"}>Undo last evening action</button> <button class="btn primary" data-fac-action="finishEvening">Lock evening and move to 10:00 PM →</button>`;
-  return shell({ round: "Round 6", phase: "Real-clock evening", say: `The class chose ${choiceLabel}. ${reflow} Flexible planning stops at 10:00 PM. The final 10:00–10:30 block is kept back for the Reality Check and getting ready for bed.`, ask: "What earns a place in the limited time before 10:00? As the windows shrink, what will the class deliberately leave unresolved?", doNow: "Use the LIVE CONTROLS directly below this guide. Add one action at a time. After each click, read back where it landed on the real clock. The scheduler now uses any genuine free gap rather than artificially wasting earlier open time. Read the reason on unavailable actions. Assessment can repeat while a 20-minute slot fits. Undo only activates once an evening action exists.", studentsDo: "Build a real schedule. Fixed commitments stay fixed; flexible actions must physically fit. Not everything is guaranteed to fit if earlier choices left more work for tonight.", controls, changes: `Basketball: ${choiceLabel}. Planning window ends 10:00 PM. Assessment left ${gs.assessmentRemaining}m · friend ${gs.friendStatus || "not pending"} · dinner ${gs.dinnerStatus} · tomorrow basics ${gs.tomorrowBasics}.` });
+  return shell({ round: "Round 6", phase: "Real-clock evening", say: `Now we build it. The class chose ${choiceLabel}. ${reflow} Don’t tell me what Jordan should do in an ideal world — tell me what actually fits. Planning stops at 10:00 PM; the last 30 minutes stays back for the Reality Check and getting ready for bed.`, ask: "What earns a place in the time before 10:00? As the windows shrink, what is the class willing to leave unresolved?", doNow: "Use the LIVE CONTROLS directly below this guide. Add one action at a time. After each click, read back where it landed on the real clock — ‘okay, that block is gone, what remains?’ Read the reason on unavailable actions out loud (‘there’s the collision — that needs 20, you’ve got 15 — what moves?’). Assessment can repeat while a 20-minute slot still fits. Undo only activates once an evening action exists.", studentsDo: "Build a real schedule. Fixed commitments stay fixed; flexible actions have to physically fit. Not everything is guaranteed to fit if earlier choices left more for tonight.", controls, changes: `Basketball: ${choiceLabel}. Planning window ends 10:00 PM. Assessment left ${gs.assessmentRemaining}m · friend ${gs.friendStatus || "not pending"} · dinner ${gs.dinnerStatus} · tomorrow basics ${gs.tomorrowBasics}.` });
 }
 
 function renderReality(gs) {
@@ -2897,12 +3108,12 @@ function renderReality(gs) {
   else if (lifeChecked && parked) controls += `<div class="reality-item"><strong>Parked phone stuff</strong><button class="btn sm" data-fac-action="r7:phone_check">Check · 5m · −1</button><button class="btn sm" data-fac-action="r7:phone_tomorrow">Leave to tomorrow</button></div>`;
   if (ready) controls += `<div class="reality-empty"><strong>NOTHING URGENT IS LEFT.</strong><small>No required decisions are left tonight. Any support planning shown above is optional.</small></div><button class="btn primary" data-fac-action="startR8">Go to Bed →</button>`;
   const stageNote = coreReady && !lifeChecked ? " Core tasks are settled; check the late interruption before closing any parked phone decision." : lifeChecked && parked ? " The late interruption has been dealt with; now close the remaining parked-phone decision." : "";
-  return shell({ round: "Round 7", phase: "Reality Check", say: `${ROUND7.intro} Right now it is ${formatTime(gs.currentTime)}. Target bed is ${formatTime(gs.targetBedtime || 1350)}. There are ${free} minutes free before bed and Tomorrow Load is ${gs.tomorrowLoad || 0} minutes.${stageNote}`, ask: (ROUND7.askBeforeChoices || []).join(" "), doNow: "Use the LIVE CONTROLS directly below this guide. Read the three live numbers first: current time, free before bed, Tomorrow Load. Work only through cards that actually appear. After every decision, the list rebuilds from what is still unresolved. When the late interruption check appears, run it before closing the final parked-phone decision. If nothing urgent remains, do not invent another task.", studentsDo: "Choose tonight versus tomorrow from the real unresolved queue. A late interruption can occur before the final parked-phone decision is closed.", controls, changes: "Time before 10:30 is used first. Only excess pushes bedtime later. Life Happens 3 is evaluated only from events still possible on this exact path." });
+  return shell({ round: "Round 7", phase: "Reality Check", say: `We’re not adding new jobs. We’re only looking at what is genuinely still unfinished. Read the clock before you decide anything: it’s ${formatTime(gs.currentTime)} now, target bed is ${formatTime(gs.targetBedtime || 1350)}, ${free} minutes free before bed, Tomorrow Load ${gs.tomorrowLoad || 0} minutes.${stageNote}`, ask: (ROUND7.askBeforeChoices || []).join(" "), doNow: "Use the LIVE CONTROLS directly below this guide. Read the three live numbers first: current time, free before bed, Tomorrow Load. Work only through cards that actually appear. After every decision, the list rebuilds from what’s still unresolved. When the late interruption check appears, run it before closing the final parked-phone decision. If nothing urgent remains, don’t invent another task.", studentsDo: "Choose tonight versus tomorrow from the real unresolved queue. A late interruption can occur before the final parked-phone decision is closed.", controls, changes: "Time before 10:30 is used first. Only excess pushes bedtime later. Life Happens 3 is evaluated only from events still possible on this exact path." });
 }
 
 function renderLife3(gs) {
   const rs = getRunState(), e = ROUND7.lifeEvents.find(x => x.id === rs.life3), parked = [gs.groupChatStatus, gs.videosStatus].some(x => x === "later"), next = parked ? { label: "Return to Reality Check →", action: "returnR7" } : { label: "Go to Bed →", action: "startR8" };
-  if (!e) return shell({ round: "Round 7", phase: "Life Happens", say: "No eligible late event exists on this path.", ask: "What does it mean that not every run gets another complication?", doNow: parked ? "Return to the Reality Check and close the parked-phone decision." : "Continue to bed.", studentsDo: "Notice that the story only brings back things that are still possible.", changes: "Nothing changes.", next });
+  if (!e) return shell({ round: "Round 7", phase: "Life Happens", say: "No eligible late event exists on this path — nothing else interrupts tonight.", ask: "What does it mean that not every run gets another complication?", doNow: parked ? "Return to the Reality Check and close the parked-phone decision." : "Continue to bed.", studentsDo: "Notice that the story only brings back things that are still genuinely possible.", changes: "Nothing changes.", next });
   return renderLife("life3", ROUND7.lifeEvents, next);
 }
 
@@ -2913,12 +3124,12 @@ function renderR8Vote() {
   const counterRows = `<div class="fac-votes fac-votes-counting">${ROUND8.choices.map(c => `<div><strong>${c.short}</strong><span>${votes[c.id] || 0}</span><button class="btn sm" onclick="window._fac.vote('${c.id}',1)">+</button><button class="btn sm" onclick="window._fac.vote('${c.id}',-1)">−</button></div>`).join("")}</div>`;
   const lockPanel = timerExpired ? `<div class="fac-lock-ready"><strong>TIME STOPPED — NOW LOCK THE CLASS CHOICE</strong><p>Count the votes, then press the matching active button.</p><div class="fac-lock-grid">${ROUND8.choices.map(c => `<button class="btn ${c.id === winner?.id && total > 0 ? "primary" : ""}" data-fac-action="r8Lock:${c.id}">LOCK IN · ${c.short}</button>`).join("")}</div></div>` : `<div class="fac-lock-gate"><strong>LOCK-IN IS NOT AVAILABLE YET</strong><span>${running ? "Wait for TIME STOPPED. The Lock In buttons will appear automatically." : "Read all four responses, then start the 10-second vote."}</span></div>`;
   const controls = `<div class="fac-timer ${timerExpired ? "stopped" : running ? "running" : "ready"}"><strong>${label}</strong><button class="btn sm" ${running ? "disabled" : ""} onclick="window._fac.startTimer(10)">${running ? "Voting…" : timerExpired ? "Run 10s again" : "Start 10s vote"}</button></div>${counterRows}${lockPanel}`;
-  return shell({ round: "Round 8", phase: "10-second class vote", say: `YOU AWAKE?? There is no more information yet. What should Jordan do? Read the four responses exactly: ${optionScript(ROUND8.choices)}`, ask: "With no more information, what is Jordan willing to give this message tonight?", doNow: "Use the LIVE CONTROLS directly below this guide. Read all four responses first. Press Start 10s and say nothing else. Let it reach TIME STOPPED. Count votes, then use the large LOCK IN button. Do not add context or tell students what the message ‘probably’ means.", studentsDo: "Listen to all four choices, decide during the 10 seconds, then hold the vote when time stops.", controls, changes: "The selected response changes only the final minutes and immediate Energy. No option is framed as correct." });
+  return shell({ round: "Round 8", phase: "10-second class vote", say: `This is it. You don’t get to ask what the message is about. You don’t get another clue. Decide with what Jordan actually has. Read the four responses exactly: ${optionScript(ROUND8.choices)}`, ask: "What are you assuming? What are you trying to protect?", doNow: "Use the LIVE CONTROLS directly below this guide. Read all four responses first. Press Start 10s and say nothing else. Let it reach TIME STOPPED. Count votes, then use the large LOCK IN button. If students demand more information, that’s the point — Jordan doesn’t have it either.", studentsDo: "Listen to all four choices, decide during the 10 seconds, then hold the vote when time stops.", controls, changes: "The selected response changes only the final minutes and immediate Energy. No option is framed as correct." });
 }
 
 function renderFinal(gs) {
   const rows = FINAL.getReceipt(getRunState(), gs).map(x => `<div class="receipt-row"><span>${x.label}</span><strong>${x.value}</strong></div>`).join("");
-  return shell({ round: "Final", phase: "The Day You Built", say: `${FINAL.closing} ${FINAL.closingScript} Read the whole receipt together.`, ask: "What did your day protect? Would you run this day again? What ONE decision would you change first? If Energy is high, what else is still being carried? If Energy is low, what did Jordan spend that Energy on?", doNow: "Read the receipt first without praising or criticising it. Compare Energy, bedtime, Tomorrow Load, paid work, basketball, people and basics together. Ask the three reflection questions. For the one-change question, always follow with: ‘What consequence would that change create?’ Then return to the opening self-care answers.", studentsDo: "Read the receipt as a pattern of trade-offs, not a score. Notice that high Energy is not automatically a better day and low Energy is not automatically a worse day, then revise the class definition of self-care.", extra: rows, changes: "Return to the class’s opening definition of self-care and connect it to the full pattern, not one number." });
+  return shell({ round: "Final", phase: "The Day You Built", say: `Don’t decide whether this was a ‘good day’ yet. Look at the whole thing — Energy, Tomorrow Load, sleep, work, people, and the things Jordan values. ${FINAL.closing} ${FINAL.closingScript}`, ask: "Would you run this day again? If you could change ONE decision, which one — and what consequence would that new decision create? At the start, we asked what self-care means. Would you change your answer now?", doNow: "Read the receipt first without praising or criticising it. Compare Energy, bedtime, Tomorrow Load, paid work, basketball, people and basics together. Ask the reflection questions. For the one-change question, always follow with: ‘What consequence would that change create?’ Then return to the opening self-care answers — if students still say self-care just means resting, remind them rest can be part of it, but today also showed boundaries, information, food, planning, asking for help, priorities, responsibilities, values, and changing the plan when life changed.", studentsDo: "Read the receipt as a pattern of trade-offs, not a score. Notice that high Energy isn’t automatically a better day and low Energy isn’t automatically a worse one, then revise the class definition of self-care.", extra: rows, changes: "Return to the class’s opening definition of self-care and connect it to the full pattern, not one number." });
 }
 
 

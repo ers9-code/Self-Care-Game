@@ -59,7 +59,7 @@ function lastDecisionFor(round, gs) {
 function resultBlock(round, gs) {
   const c = lastDecisionFor(round, gs);
   const impact = c?.impact;
-  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "" : `${impact > 0 ? "+" : ""}${impact}`}</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c.tradeoff}</div>` : ""}</div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">${c?.short || c?.label || "Decision locked"}</div><div class="proj-result-why">${c?.why || "The consequence is now part of Jordan’s day."}${c?.tradeoff ? `<div class="proj-tradeoff"><strong>WHAT THIS CHANGES</strong><br>${c.tradeoff}</div>` : ""}</div><div class="proj-energy-line"><span>ENERGY</span><strong class="${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact == null ? "—" : `${impact > 0 ? "+" : ""}${impact}`}</strong></div></div>`;
 }
 
 function lifeBlock(slot, events, gs, rs) {
@@ -79,7 +79,7 @@ function renderBody(gs, rs, ui = {}) {
 
   if (v === "r1_story") return bodyStory(ROUND1, gs, rs);
   if (v === "r1_vote") return renderLiveVote(ROUND1, ui);
-  if (v.startsWith("r1_discuss:")) { const c = ROUND1.choices.find(x => x.id === v.split(":")[1]); return `<div class="proj-question">THE CLASS LOCKED</div><div class="projector-focus"><h2>${c.short}</h2><p>${c.label}</p><p>Before the result: what does this protect, and what does it cost?</p></div>`; }
+  if (v.startsWith("r1_discuss:")) { const c = ROUND1.choices.find(x => x.id === v.split(":")[1]); return `<div class="proj-question">THE CLASS LOCKED</div><div class="projector-focus"><h2>${c.short}</h2><p>${c.label}</p><p>Before the result: what’s this plan giving Jordan, and what’s it leaving thinner?</p></div>`; }
   if (v === "r1_result") return resultBlock(ROUND1, gs);
   if (v === "r1_life") return lifeBlock("life1", ROUND1.lifeEvents, gs, rs);
 
@@ -87,7 +87,7 @@ function renderBody(gs, rs, ui = {}) {
   if (v === "r2_sort") return renderLiveSort(ui);
   if (v === "r2_result") {
     const muted = [gs.groupChatStatus === "muted" ? "group chat" : null, gs.videosStatus === "muted" ? "videos" : null].filter(Boolean);
-    return `<div class="proj-result"><div class="proj-ownership">YOUR ATTENTION PLAN</div><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">A deliberate attention plan</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "The friend DM was left for later — Jordan does not know what it says yet."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.${muted.length ? `<div class="proj-tradeoff"><strong>GONE FOR GOOD</strong><br>The ${muted.join(" and ")} ${muted.length > 1 ? "were" : "was"} muted, so ${muted.length > 1 ? "they cannot" : "it cannot"} come back later today.</div>` : ""}</div></div>`;
+    return `<div class="proj-result"><div class="proj-ownership">YOUR ATTENTION PLAN</div><div class="proj-result-choice">NOW / LATER / MUTE</div><div class="proj-result-why">${gs.friendKnownBeforeLunch ? `Jordan checked the friend DM: “${ROUND2.friendDMReveal}”` : "The friend DM was left for later — Jordan doesn’t know what it says yet."}<br>Group chat: ${gs.groupChatStatus}. Videos: ${gs.videosStatus}.${muted.length ? `<div class="proj-tradeoff"><strong>GONE FOR GOOD</strong><br>The ${muted.join(" and ")} ${muted.length > 1 ? "were" : "was"} muted, so ${muted.length > 1 ? "they cannot" : "it cannot"} come back later today.</div>` : ""}</div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+2</strong></div></div>`;
   }
 
   if (v === "r3_story") return bodyStory(ROUND3, gs, rs);
@@ -139,10 +139,10 @@ function renderProjectorR3Result(gs) {
   const log = [...(gs.decisionLog || [])].reverse().find(x => x.round === 3);
   const c = ROUND3.investigation.sources.find(x => x.id === log?.choiceId);
   const follow = log?.summary || "";
-  if (c?.direct) return `<div class="proj-result"><div class="proj-result-impact gain">+2</div><div class="proj-result-choice">${c.label}</div><div class="proj-result-why">${c.why}<div class="proj-tradeoff"><strong>WHAT JORDAN NOW KNOWS</strong><br>About 60 minutes of assessment work remains. The information is clearer; the work still has to be planned.</div></div></div>`;
+  if (c?.direct) return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">${c.label}</div><div class="proj-result-why">${c.why}<div class="proj-tradeoff"><strong>WHAT JORDAN NOW KNOWS</strong><br>About 60 minutes of assessment work remains. The information is clearer; the work still has to be planned.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+2</strong></div></div>`;
   const first = c?.id === "deadline" ? "The calendar confirmed the due time: tomorrow at 3 PM." : "The peer gave useful context about the task.";
   const second = follow.includes("teacher") ? "The Teacher then clarified exactly what remains." : "The Task Sheet then showed exactly what is required.";
-  return `<div class="proj-result"><div class="proj-result-impact gain">+1</div><div class="proj-result-choice">TWO USEFUL CHECKS</div><div class="proj-result-why">${first}<br>${second}<div class="proj-tradeoff"><strong>NOW THE PICTURE IS COMPLETE</strong><br>About 60 minutes of assessment work remains.</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">TWO USEFUL CHECKS</div><div class="proj-result-why">${first}<br>${second}<div class="proj-tradeoff"><strong>NOW THE PICTURE IS COMPLETE</strong><br>About 60 minutes of assessment work remains.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="gain">+1</strong></div></div>`;
 }
 
 function renderProjectorR4Result(gs) {
@@ -150,7 +150,7 @@ function renderProjectorR4Result(gs) {
   const c = ROUND4.choices.find(x => x.id === log?.choiceId);
   const said = log?.summary || "Wording chosen by the class";
   const impact = c?.impact ?? 0;
-  return `<div class="proj-result"><div class="proj-ownership">THAT’S WHAT YOUR CLASS SAID.</div><div class="proj-result-impact ${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>TRADE-OFF</strong><br>${c?.tradeoff || ""}</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">THAT’S WHAT YOUR CLASS SAID</div><div class="proj-result-choice">${c?.short || "LUNCH DECISION"}</div><div class="proj-result-why"><div class="proj-tradeoff"><strong>JORDAN SAID</strong><br>“${escapeHtml(said)}”</div>${c?.why || ""}<div class="proj-tradeoff"><strong>WHAT THIS CHANGES</strong><br>${c?.tradeoff || ""}</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="${impact > 0 ? "gain" : impact < 0 ? "take" : "neutral"}">${impact > 0 ? "+" : ""}${impact}</strong></div></div>`;
 }
 
 function renderLiveVote(round, ui) {
@@ -195,12 +195,12 @@ function renderWorkResult(gs) {
   const spendList = used.length
     ? `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong>${used.map(a => `<span class="spend-check">✓ ${a.label}</span>`).join("")}${gs.workGapRemaining > 0 ? `<span class="spend-cross">✕ ${gs.workGapRemaining} MIN — DIDN’T FIT / LEFT OPEN</span>` : ""}</div>`
     : `<div class="proj-spend-list"><strong>YOUR ${gs.workGapTotal || 0} MINUTES</strong><span class="spend-cross">✕ LEFT OPEN — NOTHING SPENT</span></div>`;
-  return `<div class="proj-result">${spendList}<div class="proj-result-impact ${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div><div class="proj-result-why">${work?.why || "The work choice now plays out."}<br>Shift Energy: ${work?.workImpact || 0}. Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"}.</div></div></div>`;
+  return `<div class="proj-result"><div class="proj-ownership">YOUR CLASS CHOSE</div><div class="proj-result-choice">WORK SHIFT COMPLETE · ${work?.short || "WORK"}</div>${spendList}<div class="proj-result-why">${work?.why || "The work choice now plays out."} Extra paid work: ${gs.extraPaidMinutes || 0} min.${hunger}<div class="proj-tradeoff"><strong>STILL IN PLAY</strong><br>Assessment ${gs.assessmentRemaining} min · Friend ${gs.friendStatus || "not pending"}.</div></div><div class="proj-energy-line"><span>ENERGY</span><strong class="${total < 0 ? "take" : "neutral"}">${total > 0 ? "+" : ""}${total}</strong></div></div>`;
 }
 
 function renderBasket(gs) {
   const opts = gs.homeTime === 1130 ? ["JOIN LATE — arrive around 7:20", "SKIP BASKETBALL"] : ["ATTEND BASKETBALL", "SKIP BASKETBALL"];
-  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.homeTime)}</span><span class="proj-part">Basketball</span></div><div class="proj-question">What happens with basketball?</div><div class="proj-choices">${opts.map((x, i) => `<div class="proj-choice"><div class="proj-choice-letter">${i + 1}</div><div class="proj-choice-text">${x}</div></div>`).join("")}</div>`;
+  return `<div class="proj-clockrow"><span class="proj-time">${formatTime(gs.homeTime)}</span><span class="proj-part">Basketball</span></div><div class="proj-question">DOES BASKETBALL STAY IN THE EVENING?</div><div class="proj-choices">${opts.map((x, i) => `<div class="proj-choice"><div class="proj-choice-letter">${i + 1}</div><div class="proj-choice-text">${x}</div></div>`).join("")}</div>`;
 }
 
 function fixedEveningBlocks(gs) {

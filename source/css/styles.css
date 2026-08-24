@@ -578,8 +578,15 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .proj-result-impact.gain { color: #34d399; }
 .proj-result-impact.take { color: #f87171; }
 .proj-result-impact.neutral { color: var(--proj-muted); }
-.proj-result-choice { font-size: 17px; font-weight: 600; margin-bottom: 10px; flex-shrink: 0; }
+.proj-result-choice { font-family: "Segoe UI Semibold", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 12px; flex-shrink: 0; line-height: 1.2; }
 .proj-result-why { font-size: 15px; line-height: 1.6; color: #94a3b8; flex: 1; overflow: hidden; }
+/* Energy is a consequence of the story, not the headline: small, last in reading order, de-emphasised relative to the decision/story content above it. */
+.proj-energy-line { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--proj-border); flex-shrink: 0; }
+.proj-energy-line span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--proj-muted); }
+.proj-energy-line strong { font-family: "Segoe UI Semibold", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; font-size: 20px; font-weight: 800; }
+.proj-energy-line strong.gain { color: #34d399; }
+.proj-energy-line strong.take { color: #f87171; }
+.proj-energy-line strong.neutral { color: var(--proj-muted); }
 
 /* Dots progress */
 .proj-dots { display: flex; gap: 6px; align-items: center; }
@@ -726,6 +733,7 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
 .reality-projector>div{background:#ffffff;border:1px solid #d8e1ec;color:#172033}.reality-projector span{color:#64748b}
 .receipt-grid>div{background:#ffffff;border:1px solid #d8e1ec}.receipt-grid span{color:#64748b}.receipt-projector h2,.receipt-projector h3,.receipt-questions{color:#172033}.receipt-projector h3{border-top-color:#cbd5e1}
 .proj-result-impact.neutral{color:#64748b}.proj-result-choice{color:#172033}.proj-result-why{color:#475569;font-size:18px}
+.proj-energy-line{border-top-color:#cbd5e1}.proj-energy-line span{color:#64748b}.proj-energy-line strong.neutral{color:#64748b}
 .dialogue-bubble{background:#ffffff;border:1px solid #cbd5e1;box-shadow:0 5px 18px rgba(15,23,42,.06)}
 .projector-countdown{color:#b45309;background:#fffbeb;border:2px solid #fcd34d;border-radius:14px;padding:6px 14px}
 .vote-count{color:#0369a1}
@@ -814,6 +822,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; }
   .receipt-questions p{font-size:14px;}
   .receipt-projector h3{font-size:18px;padding-top:7px;}
   .receipt-closing-copy{font-size:13px;line-height:1.35;margin-top:5px;}
+  .proj-result-choice{font-size:22px;margin-bottom:8px;}
+  .proj-energy-line{margin-top:8px;padding-top:7px;}
+  .proj-energy-line strong{font-size:17px;}
 }
 /* At narrower classroom laptops, keep the facilitator preview useful but protect the script pane. */
 @media(max-width:1280px){.fac-preview{width:500px;min-width:500px;}}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Energy Bar Challenge — Jordan's Day</title>
+<meta content="A classroom simulation activity about self-care and energy management. Dual-screen activity for facilitators and students." name="description"/>
+<link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+<!-- ── Facilitator screen (when opened normally) ─────────────────────────── -->
+<div class="hidden" id="facilitator-root">
+<header class="fac-topbar">
+<div class="fac-brand">
+<h1>Energy Bar Challenge</h1>
+<small>Facilitator Controller</small>
+</div>
+<div class="fac-topbar-actions">
+<button class="btn" id="btn-open-projector" onclick="window._fac.openProjector()">⬡ Open Student Screen</button>
+<button class="btn" id="btn-reset" onclick="if(confirm('Restart from beginning?')) window._fac.reset()">↺ Reset</button>
+</div>
+</header>
+<div class="fac-status" id="fac-status">
+<span class="fac-status-chip">Setup</span>
+</div>
+<div class="fac-body">
+<div class="fac-controller" id="fac-controller">
+<!-- rendered by render-facilitator.js via main.js -->
+</div>
+<div class="fac-preview">
+<div class="fac-preview-label"><span>Student screen preview · view only</span><button class="preview-toggle" onclick="window._fac.togglePreview()">⛶ Toggle large preview</button></div>
+<div class="fac-preview-frame" id="fac-preview-frame">
+<!-- rendered by main.js renderBoth() -->
+</div>
+</div>
+</div>
+</div>
+<!-- ── Projector screen (when opened with ?projector=1) ──────────────────── -->
+<div class="hidden" id="projector-root">
+<!-- rendered entirely by transport.js / render-projector.js -->
+</div>
+
+<!-- Load order matters: each later file uses globals defined by the ones before it. -->
+<script src="js/state.js"></script>
+<script src="js/images.js"></script>
+<script src="js/content.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render-projector.js"></script>
+<script src="js/render-facilitator.js"></script>
+<script src="js/transport.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
